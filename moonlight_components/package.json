@@ -1,0 +1,15 @@
+{
+  "name": "moonlight-react",
+"description": "Moonlight components to optimize your webpage.",
+"author": "Moonlight",
+"keywords": ["react", "components", "ui", "personalization","ab test"],
+"version": "0.1.0",
+"private": false,
+"main": "dist/index.js",
+"module": "dist/index.js",
+"files": [ "dist", "README.md" ],
+"repository": {
+    "type": "git",
+    "url": "git+https://github.com/douglas-guyett-mg/golden_lion.git"
+}
+}
