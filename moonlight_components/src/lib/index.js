@@ -1,2 +1,4 @@
 import ReplaceComponent from './components/replaceComponent';
-export { ReplaceComponent };
+import ActionComponent from './components/actionComponent';
+import MoonlightInit from './components/global_vars';
+export { ReplaceComponent, ActionComponent, MoonlightInit};

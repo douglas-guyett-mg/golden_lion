@@ -1,9 +1,7 @@
 // console.log("starting")
 // import AWS from "aws-sdk";
-import { DynamoDB } from "@aws-sdk/client-dynamodb";
+
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
-import { CognitoIdentityClient } from "@aws-sdk/client-cognito-identity"
-import { fromCognitoIdentityPool } from "@aws-sdk/credential-provider-cognito-identity"
 // import * as AWS from "@aws-sdk/client-dynamodb";
 import {
     CONFIG,
@@ -18,71 +16,34 @@ import {
     PARTNER_NAME,
     PATH_LOCATION,
     FULL_LOCATION,
-    PERCENT_CONTROL
+    PERCENT_CONTROL,
+    docClient
 } from "./global_vars";
 
-/**
- * AWS Retrieval
- */
+//Initialize
+let retries = 0;
 
-// set identity for cognity access
-const cognitoIdentityClient = new CognitoIdentityClient({
-    region: "us-east-1"
-});
-
-// initialize dynamo db object with a identity that has access to read configs, adjustments & post events
-const docClient = new DynamoDB({
-    region: REGION,
-    credentials: fromCognitoIdentityPool({
-        client: cognitoIdentityClient,
-        identityPoolId: ID_POOL_ID
-    })
-});
-
-/* 
-User set up
-*/
+// /**
+//  * AWS Retrieval
+//  */
 
 
-// set holders for global variables 
-// unique id for each user -> stored in a cookie specific to this site
-let USER_ID = "";
-// determines if this is a control or experimental condition
-let STATUS = "";
-// holds information about the location of the user for this session
-let location_info = {}
+//  const cognitoIdentityClient = new CognitoIdentityClient({
+//     region: "us-east-1"
+// });
 
-// initialize user_info with a false repeate visitor
+// const docClient = new DynamoDB({
+//     region: REGION,
+//     credentials: fromCognitoIdentityPool({
+//         client: cognitoIdentityClient,
+//         identityPoolId: ID_POOL_ID
+//     })
+// });
+
 var user_info = {
     repeat_visitor: false,
 };
 
-// constant/function that sets a cookie (allows us to track repeat vistors)
-const setCookie = (cname, cvalue, exdays) => {
-    var d = new Date();
-    d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
-    var expires = "expires=" + d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-};
-
-// constant/function to get any exsiting cookies on page
-const getCookie = (cname) => {
-    var name = cname + "=";
-    var decodedCookie = decodeURIComponent(document.cookie);
-    var ca = decodedCookie.split(";");
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0) == " ") {
-            c = c.substring(1);
-        }
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-        }
-    }
-    return "";
-};
-
-// basic function to generate a unique id
 const generateUUID = () => {
     // Public Domain/MIT
     var d = new Date().getTime(); //Timestamp
@@ -102,8 +63,7 @@ const generateUUID = () => {
     });
 };
 
-// function to generate a status to determine control versus experiment.  Percentage set in global variables
-// if a new status is generated it is stored as an event
+
 const generateStatus = () => {
     // console.log("Generating status")
     const randNumber = Math.floor(Math.random() * 100) + 1
@@ -114,6 +74,10 @@ const generateStatus = () => {
     } else {
         status = "experiment"
     }
+    // const newUserInfo = {"status":status}
+    // const location_info = gather_ip_attributes()
+    // newUserInfo["city"] = location_info["city"]
+    // newUserInfo["country"] = location_info["country"]
 
     const event = {
         event_value: 0,
@@ -127,6 +91,97 @@ const generateStatus = () => {
     return status
 };
 
+// add attributes to user
+const setUser = () => {
+    gather_ip_attributes();
+};
+
+const checkLocal = () => {
+    const businessLocation = CONFIG.businessLocation || "Napa";
+
+    if (user_info["location"] === businessLocation) {
+        user_info["local"] = true;
+    } else {
+        user_info["local"] = false;
+    }
+};
+const gather_ip_attributes = () => {
+    // user_info = {}
+    fetch("https://extreme-ip-lookup.com/json/")
+        .then((res) => res.json())
+        .then((response) => {
+            // user_info["location"] = response["city"];
+            // console.log(
+            //   "A"
+            // )
+            const location_info = { "city": response["city"], "country": response["countryCode"], "region": response["region"], "platform": navigator.platform, "vendor": navigator.vendor, "appVersion": navigator.appVersion, "userAgent": navigator.userAgent, "language": navigator.language }
+            // return location_info
+            // console.log("b")
+            // console.log("user location", user_info["location"]);
+            // checkLocal();
+            const event = {
+                event_value: 0,
+                event_type: "locationInfo",
+                event_info: location_info,
+                trigger_method: "locationInfo",
+                trigger_element_path: "onload",
+                element_path: " "
+            }
+            sendEvent(event)
+        })
+        .catch((data, status) => {
+            console.log("Request failed");
+        });
+};
+
+const grabSessionSpecificInfo = () => {
+
+    const session_info = { "referrer": document.referrer }
+
+    const event = {
+        event_value: 0,
+        event_type: "sessionInfo",
+        event_info: session_info,
+        trigger_method: "sessionInfo",
+        trigger_element_path: "onload",
+        element_path: " "
+    }
+    sendEvent(event)
+
+}
+
+
+// create a session_id to track events that all happen within one session.  Here session is defined as duration of the page.
+const session_id_start = generateUUID();
+sessionStorage.setItem("session_id", session_id_start);
+
+// next section defines the user_id and sets it into a cookie so repeate users can be identified
+let USER_ID = "";
+let STATUS = "";
+let location_info = {}
+// constant/function that sets a cookie (allows us to track repeate vistors)
+const setCookie = (cname, cvalue, exdays) => {
+    var d = new Date();
+    d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+    var expires = "expires=" + d.toUTCString();
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+};
+// constant/function to get any exsiting cookies on page
+const getCookie = (cname) => {
+    var name = cname + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(";");
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == " ") {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+};
 // check to see if the ID has already been set, if so grab otherwise set a new cookie
 const getUserId = () => {
     try {
@@ -147,8 +202,7 @@ const getUserId = () => {
     }
 };
 
-// Determine if the status has already been set (from cookie)
-// If status is set use otherwise create a new status for this user
+// need to add function here that creates condition TODOO
 const getStatus = () => {
     try {
         const cookieName = "moonlight.status";
@@ -157,6 +211,7 @@ const getStatus = () => {
         if (!cookie) {
             const status = generateStatus()
             const newCookie = setCookie(cookieName, status, 1000);
+            location_info = gather_ip_attributes()
             return newCookie;
         }
         return cookie;
@@ -166,57 +221,18 @@ const getStatus = () => {
     }
 };
 
-// query to get location information and browser info
-// creates an event tied to the user id
-const gather_ip_attributes = () => {
-    // user_info = {}
-    fetch("https://extreme-ip-lookup.com/json/")
-        .then((res) => res.json())
-        .then((response) => {
 
-            location_info = { "city": response["city"], "country": response["countryCode"], "region": response["region"], "platform": navigator.platform, "vendor": navigator.vendor, "appVersion": navigator.appVersion, "userAgent": navigator.userAgent, "language": navigator.language }
-
-            const event = {
-                event_value: 0,
-                event_type: "locationInfo",
-                event_info: location_info,
-                trigger_method: "locationInfo",
-                trigger_element_path: "onload",
-                element_path: " "
-            }
-            sendEvent(event)
-        })
-        .catch((data, status) => {
-            console.log("Request failed");
-        });
-};
-
-// adds an event based on the session specific information <- currently just referrer
-const grabSessionSpecificInfo = () => {
-
-    const session_info = { "referrer": document.referrer }
-
-    const event = {
-        event_value: 0,
-        event_type: "sessionInfo",
-        event_info: session_info,
-        trigger_method: "sessionInfo",
-        trigger_element_path: "onload",
-        element_path: " "
-    }
-    sendEvent(event)
-
-}
-
-
-// Post event to Dynamo DB
 export const sendEvent = (event) => {
     const event_type = event.event_type;
 
     // console.log("Starting event send")
 
+    const event_id = generateUUID()
+
+    // console.log("event_id",event_id)
+
     const eventData = {
-        event_id: generateUUID(),
+        event_id: event_id,
         event_info: event.event_info,
         event_timestamp: Date.now(),
         event_type: event_type,
@@ -242,7 +258,6 @@ export const sendEvent = (event) => {
     });
 };
 
-// Get the replacement value and send an event that the replacement has happened
 const replaceContentOne = (obj, replacement_info, adjustment_key_name, trigger_element, event_info) => {
     var success = true
     // console.log("replacement_info", replacement_info);
@@ -261,11 +276,10 @@ const replaceContentOne = (obj, replacement_info, adjustment_key_name, trigger_e
         }
         sendEvent(event);
     }
-    // console.log("replace", replace_value)
+    console.log("replace", replace_value)
     return replace_value
 };
 
-// pass through function
 const replaceContent = (data, adjustment_object_values, adjustment_key_name, trigger_element, event_info) => {
     // console.log("Starting Replacement");
     // console.log("Replace data", data);
@@ -273,7 +287,6 @@ const replaceContent = (data, adjustment_object_values, adjustment_key_name, tri
     return replaceContentOne(data, adjustment_object_values, adjustment_key_name, trigger_element, event_info);
 };
 
-//pass through function
 const render = (data, adjustment_object_values, adjustment_key_name, trigger_element, event_info) => {
     // console.log("Starting Rendering");
     // console.log("Render Data", data);
@@ -281,7 +294,7 @@ const render = (data, adjustment_object_values, adjustment_key_name, trigger_ele
     return replaceContent(data, adjustment_object_values, adjustment_key_name, trigger_element, event_info);
 };
 
-// gets the information specific from the event and queried adjustment to then execute the replacement
+
 const executeChange = (adjustment, event) => {
 
     var adjustment_object = adjustment.adjustment_object;
@@ -293,7 +306,14 @@ const executeChange = (adjustment, event) => {
         adjustment_group: event.adjustment_group,
         replacement_id: event.id || event.adjustment_group
     }
-    // console.log("rendering")
+    console.log("rendering")
+    // const renderSuccess = render(
+    //     adjustment_object,
+    //     adjustment_object_values,
+    //     event.adjustment_key_name,
+    //     event.trigger_element_path,
+    //     event_info
+    // );
     return {
         "replaceValue": render(
             adjustment_object,
@@ -303,17 +323,20 @@ const executeChange = (adjustment, event) => {
             event_info
         ), "adjustment": event
     };
+    // if (renderSuccess) {
+    //     event.adjustment_completed = true;
+    // }
+    // console.log("REN",renderSuccess)
+    // return renderSuccess
 
 }
 
 
 const queryData = (event, adjustment_id, default_adjustment_key, execute) => {
+    // If replacing, hide element
+    console.log("Starting Query");
+    console.log("adjustment_key", adjustment_id);
 
-    // console.log("Starting Query");
-    // console.log("adjustment_key", adjustment_id);
-
-    // commenting out to allow for more iterations
-    // use local storage for onload replacements to speed up process
     // if (event.trigger_method === "onload") {
     //     var adjustment = JSON.parse(window.localStorage.getItem(adjustment_id))
     //     if (adjustment) {
@@ -324,7 +347,6 @@ const queryData = (event, adjustment_id, default_adjustment_key, execute) => {
     //         return
     //     }
     // }
-
     // console.log("Adjustment Key",adjustment_id)
     const params = {
         TableName: REC_TABLE_NAME,
@@ -333,7 +355,6 @@ const queryData = (event, adjustment_id, default_adjustment_key, execute) => {
             ":c": String(adjustment_id),
         }),
     };
-    // run query
     const aa = new Promise((resolve, reject) => {
         try {
             docClient.query(params, (err, data) => {
@@ -343,11 +364,10 @@ const queryData = (event, adjustment_id, default_adjustment_key, execute) => {
                 }
                 const items = data.Items;
                 if (items && !items[0]) {
-                    // console.log("no data found")
+                    console.log("no data found")
                     resolve(false)
                 }
 
-                // commented out because no event path means all possibilities will be seen
                 // Required because not all keys will have been seen before
                 // if (items && !items[0]) {
                 //     console.log("Going Default");
@@ -357,11 +377,10 @@ const queryData = (event, adjustment_id, default_adjustment_key, execute) => {
                 //         return queryData(event, default_adjustment_key, default_adjustment_key, true);
                 //     }
                 // }
-
                 var adjustment = unmarshall(items[0]);
                 window.localStorage.setItem(adjustment_id, JSON.stringify(adjustment))
                 if (execute) {
-                    // console.log("executing")
+                    console.log("executing")
                     resolve(executeChange(adjustment, event))
                 }
                 return
@@ -376,20 +395,18 @@ const queryData = (event, adjustment_id, default_adjustment_key, execute) => {
 };
 
 
-// determine the adjustment key structure based on the replacement type
+
 const generate_adjustment_key = (adjustment) => {
     // take in adjustmentID
     // return the full path
     // also need to add in addendum for AB testing
-    // for ab selet one of the possible iterations
+    console.log("A")
     if (adjustment.adjustment_key_name == "a_b") {
         return adjustment.adjustment_key_name + ":" + adjustment.addendum;
     }
-    // specific for chapter <- think about how to make this more general (maybe just switch to utm_parameter)
     else if (adjustment.adjustment_key_name == "state") {
         // console.log("location_info",location_info)
         const utm_campaign = urlParams.get("utm_campaign")
-        // console.log("utm",utm_campaign)
         if (utm_campaign) {
             return utm_campaign;
         }
@@ -405,33 +422,10 @@ const generate_adjustment_key = (adjustment) => {
 
 
 
-
-// choose a random possibility for the available options for an ab replacement
-const set_ab_path = (action) => {
-    const key_name = action.adjustment_group + "_addendum"
-    var addendum = JSON.parse(window.localStorage.getItem(key_name))
-    // comment out because not using local storage for more iterations
-    // check if ab has already been set to preserve iteration for customer
-    // if (addendum) {
-    //     action["addendum"] = addendum.toString() + ":end";
-    // }
-    if (action["trigger_type"] === "even_split") {
-        // add in line so that user gets same ab TODO
-        const max = action["trigger_element_path"];
-        addendum = Math.floor(Math.random() * Math.floor(max));
-        // console.log("setting",addendum)
-        action["addendum"] = addendum.toString() + ":end";
-        window.localStorage.setItem(key_name, JSON.stringify(addendum))
-    }
-
-};
-
-
-// run the process for a given replacement
 const gatherAdjustment = (adjustment, updateDict) => {
-    // console.log("starting adjustment");
-    // console.log("adjustment event", adjustment.id);
-    set_ab_path(adjustment)
+    console.log("starting adjustment");
+    console.log("adjustment event", adjustment.id);
+
     // the adjustment key depends on the adjustment (user_id, event_path, etc)
     const adjustment_key = generate_adjustment_key(adjustment);
 
@@ -446,43 +440,47 @@ const gatherAdjustment = (adjustment, updateDict) => {
 
 
 
+// Setting up configuration
+const set_ab_path = (action) => {
+    const key_name = action.adjustment_group + "_addendum"
+    var addendum = JSON.parse(window.localStorage.getItem(key_name))
+    // if (addendum) {
+    //     action["addendum"] = addendum.toString() + ":end";
+    // }
+    if (action["trigger_type"] === "even_split") {
+        // add in line so that user gets same ab
+
+        const max = action["trigger_element_path"];
+        addendum = Math.floor(Math.random() * Math.floor(max));
+        // console.log("setting",addendum)
+        action["addendum"] = addendum.toString() + ":end";
+        window.localStorage.setItem(key_name, JSON.stringify(addendum))
+    }
+
+};
+
 // starting function
+
 export function retireve_configs(componentID, updateDict) {
 
-
-    // create a session_id to track events that all happen within one session.  Here session is defined as duration of the page.
-    const session_id_start = sessionStorage.getItem("session_id") || generateUUID();
-    sessionStorage.setItem("session_id", session_id_start);
-
-    // get the existing user id cookie <- note should be able to consolidate into one line
-    // determines if the user_id has already been set and creates a new cookie if necessary
+    // need to add in section here to identify user and split into control or experiment based on that
     const cookie = getUserId();
-    // gets the existing user_id cookie
     USER_ID = getCookie("moonlight.uuid");
-
-    // gets the existing status cookie <- note should be able to consolidate into one line
-    //determines if the status has already been set and creates a new status if not
     const statusCookie = getStatus();
-    // gets the existing status cookie
     STATUS = getCookie("moonlight.status");
-    // sends an event with the location information
-    gather_ip_attributes()
-    // sends an event with the session specific info
     grabSessionSpecificInfo()
-    // If the status is control, do not run Moonlight
     if (STATUS === "control") {
+        // console.log("setting adjustments")
         return false
     }
 
-    // console.log("retrieving")
+    console.log("retrieving")
     //Initialize
-    // check if the configs have already been set to speed up
     var availableConfigs = JSON.parse(window.localStorage.getItem("availableConfigs"))
-    // console.log("aa", availableConfigs)
+    console.log("aa", availableConfigs)
     var adjustment = {}
-    // if the configs have already been set than use the ones in local storage to improve speed
-    if (availableConfigs) {
-        // if (false) {
+    // if (availableConfigs) {
+    if (false) {
         // console.log("grabbed from local storage", availableConfigs)
         // console.log("Grabbing configs from local storage")
         // console.log("PP",PATH_LOCATION)
@@ -490,10 +488,10 @@ export function retireve_configs(componentID, updateDict) {
         if (PATH_LOCATION in availableConfigs[configName]) {
             // console.log("running")
             adjustment = availableConfigs[configName][PATH_LOCATION]["REPLACEMENT"][componentID]
-
+            set_ab_path(adjustment)
             adjustment.id = componentID
-            // console.log("gg", adjustment)
-
+            console.log("gg", adjustment)
+            // return { "replaceValue": gatherAdjustment(adjustment), "adjustment": adjustment }
             return gatherAdjustment(adjustment, updateDict)
         }
         return
@@ -509,19 +507,18 @@ export function retireve_configs(componentID, updateDict) {
             ":c": String(TOP_LOCATION),
         }),
     };
-    // gather the configs and run the replacement
+
     const tt = new Promise((resolve, reject) => {
         try {
             docClient.query(params, (err, data) => {
-                // console.log("Querying for configs")
+                console.log("Querying for configs")
                 if (err) {
                     console.warn("Moonlight: querying data error ", err);
                     return err;
                 }
                 // console.log("Data",data)
                 const items = data.Items;
-                // console.log("Items", items)
-                // if no configs do not do anything
+                console.log("Items", items)
                 if (items && !items[0]) {
                     // console.log("Moonlight: No Configs");
                     return;
@@ -531,10 +528,11 @@ export function retireve_configs(componentID, updateDict) {
                     // console.log("Using Config: ", configName)
                     if (PATH_LOCATION in availableConfigs[configName]) {
                         adjustment = availableConfigs[configName][PATH_LOCATION]["REPLACEMENT"][componentID]
+                        set_ab_path(adjustment)
                         adjustment.id = componentID
-
+                        // return { "replaceValue": gatherAdjustment(adjustment), "adjustment": adjustment }
                         resolve(gatherAdjustment(adjustment, updateDict))
-
+                        // resolve("https://frontend-components-develop.s3.us-west-1.amazonaws.com/chapterFacebookDemo.png")
                     }
                 }
             });
