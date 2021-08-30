@@ -210,7 +210,7 @@ const grabSessionSpecificInfo = () => {
 
 
 // Post event to Dynamo DB
-const sendEvent = (event) => {
+export const sendEvent = (event) => {
     const event_type = event.event_type;
 
     // console.log("Starting event send")
