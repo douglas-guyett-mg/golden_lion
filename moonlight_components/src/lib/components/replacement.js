@@ -276,7 +276,7 @@ const replaceContentOne = (obj, replacement_info, adjustment_key_name, trigger_e
         }
         sendEvent(event);
     }
-    console.log("replace", replace_value)
+    // console.log("replace", replace_value)
     return replace_value
 };
 
@@ -306,7 +306,7 @@ const executeChange = (adjustment, event) => {
         adjustment_group: event.adjustment_group,
         replacement_id: event.id || event.adjustment_group
     }
-    console.log("rendering")
+    // console.log("rendering")
     // const renderSuccess = render(
     //     adjustment_object,
     //     adjustment_object_values,
@@ -334,8 +334,8 @@ const executeChange = (adjustment, event) => {
 
 const queryData = (event, adjustment_id, default_adjustment_key, execute) => {
     // If replacing, hide element
-    console.log("Starting Query");
-    console.log("adjustment_key", adjustment_id);
+    // console.log("Starting Query");
+    // console.log("adjustment_key", adjustment_id);
 
     // if (event.trigger_method === "onload") {
     //     var adjustment = JSON.parse(window.localStorage.getItem(adjustment_id))
@@ -380,7 +380,7 @@ const queryData = (event, adjustment_id, default_adjustment_key, execute) => {
                 var adjustment = unmarshall(items[0]);
                 window.localStorage.setItem(adjustment_id, JSON.stringify(adjustment))
                 if (execute) {
-                    console.log("executing")
+                    // console.log("executing")
                     resolve(executeChange(adjustment, event))
                 }
                 return
@@ -400,7 +400,7 @@ const generate_adjustment_key = (adjustment) => {
     // take in adjustmentID
     // return the full path
     // also need to add in addendum for AB testing
-    console.log("A")
+    // console.log("A")
     if (adjustment.adjustment_key_name == "a_b") {
         return adjustment.adjustment_key_name + ":" + adjustment.addendum;
     }
@@ -423,8 +423,8 @@ const generate_adjustment_key = (adjustment) => {
 
 
 const gatherAdjustment = (adjustment, updateDict) => {
-    console.log("starting adjustment");
-    console.log("adjustment event", adjustment.id);
+    // console.log("starting adjustment");
+    // console.log("adjustment event", adjustment.id);
 
     // the adjustment key depends on the adjustment (user_id, event_path, etc)
     const adjustment_key = generate_adjustment_key(adjustment);
@@ -474,10 +474,10 @@ export function retireve_configs(componentID, updateDict) {
         return false
     }
 
-    console.log("retrieving")
+    // console.log("retrieving")
     //Initialize
     var availableConfigs = JSON.parse(window.localStorage.getItem("availableConfigs"))
-    console.log("aa", availableConfigs)
+    // console.log("aa", availableConfigs)
     var adjustment = {}
     // if (availableConfigs) {
     if (false) {
@@ -490,7 +490,7 @@ export function retireve_configs(componentID, updateDict) {
             adjustment = availableConfigs[configName][PATH_LOCATION]["REPLACEMENT"][componentID]
             set_ab_path(adjustment)
             adjustment.id = componentID
-            console.log("gg", adjustment)
+            // console.log("gg", adjustment)
             // return { "replaceValue": gatherAdjustment(adjustment), "adjustment": adjustment }
             return gatherAdjustment(adjustment, updateDict)
         }
@@ -511,14 +511,14 @@ export function retireve_configs(componentID, updateDict) {
     const tt = new Promise((resolve, reject) => {
         try {
             docClient.query(params, (err, data) => {
-                console.log("Querying for configs")
+                // console.log("Querying for configs")
                 if (err) {
                     console.warn("Moonlight: querying data error ", err);
                     return err;
                 }
                 // console.log("Data",data)
                 const items = data.Items;
-                console.log("Items", items)
+                // console.log("Items", items)
                 if (items && !items[0]) {
                     // console.log("Moonlight: No Configs");
                     return;
