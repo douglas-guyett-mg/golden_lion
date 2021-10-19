@@ -1,15 +1,35 @@
 {
   "name": "moonlight-react",
-"description": "Moonlight components to optimize your webpage.",
-"author": "Moonlight",
-"keywords": ["react", "components", "ui", "personalization","ab test"],
-"version": "0.1.17",
-"private": false,
-"main": "dist/index.js",
-"module": "dist/index.js",
-"files": [ "dist", "README.md" ],
-"repository": {
-    "type": "git",
-    "url": "git+https://github.com/douglas-guyett-mg/golden_lion.git"
-}
-}
+  "description": "Moonlight components to optimize your webpage.",
+  "author": "Moonlight",
+  "keywords": ["react", "components", "ui", "personalization","ab test"],
+  "version": "0.1.24",
+  "dependencies": {
+    "@babel/polyfill": "^7.12.1",
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/react": "^11.1.0",
+    "@testing-library/user-event": "^12.1.10",
+    "@aws-sdk/client-cognito-identity": "^3.36.0",
+    "@aws-sdk/client-dynamodb": "^3.36.0",
+    "@aws-sdk/credential-provider-cognito-identity": "^3.36.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "4.0.3",
+    "web-vitals": "^1.0.1"
+  
+  },
+    "devDependencies": {
+      "@babel/cli": "^7.14.8",
+      "@babel/core": "^7.15.0",
+      "@babel/preset-env": "^7.15.0"
+    },
+  "private": false,
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "files": [ "dist", "README.md" ],
+  "repository": {
+      "type": "git",
+      "url": "git+https://github.com/douglas-guyett-mg/golden_lion.git"
+  }
+  }
+  
