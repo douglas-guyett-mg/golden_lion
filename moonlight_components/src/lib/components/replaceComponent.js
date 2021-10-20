@@ -29,6 +29,7 @@ const ReplaceComponent = ({ children, adjustmentId }) => {
                 }
             } catch (e) {
                 console.error("Issue requesting Moonlight.")
+                console.error(e)
             }
         }
         // Execute the created function directly

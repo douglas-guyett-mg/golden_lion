@@ -22,7 +22,7 @@ export var TOP_LOCATION = ""
 export var PATH_LOCATION = ""
 export var FULL_LOCATION = ""
 
-export var PERCENT_CONTROL = ""
+export var MOONLIGHT_PERCENT_CONTROL = ""
 
 export var REC_TABLE_NAME = ""
 export var EVENT_TABLE_NAME = ""
@@ -30,10 +30,12 @@ export var CONFIG_TABLE_NAME = ""
 
 export var docClient = null
 
-export const urlParams = new URLSearchParams(window.location.search);
+export var urlParams = ""
 
 
-const MoonlightInit = (config) => {
+function MoonlightInit(config) {
+  console.log("Initiating")
+  // urlParams = new URLSearchParams(window.location.search);
   CONFIG = config
   ENV = CONFIG.ENV || "develop"
   PARTNER = CONFIG.UNIVERSE
@@ -54,11 +56,11 @@ const MoonlightInit = (config) => {
   const CONFIG_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "webflow_config";
   const EXECUTION_LEVEL = CONFIG.EXECUTION_LEVEL || "user_interaction";
 
-  TOP_LOCATION = CONFIG.TOP_LOCATION + ":" + PARTNER_NAME + ":base" || "key" + window.location.protocol + "//" + window.location.host;
+  TOP_LOCATION = CONFIG.TOP_LOCATION + ":" + PARTNER_NAME + ":base" //|| "key" + window.location.protocol + "//" + window.location.host;
   PATH_LOCATION = "/ReactComponent";
   FULL_LOCATION = TOP_LOCATION + PATH_LOCATION
 
-  PERCENT_CONTROL = 10;
+  MOONLIGHT_PERCENT_CONTROL = 10;
 
   REC_TABLE_NAME = `${REC_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
   EVENT_TABLE_NAME = `${EVENT_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;

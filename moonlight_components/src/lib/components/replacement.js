@@ -12,11 +12,11 @@ import {
     EVENT_TABLE_NAME,
     CONFIG_TABLE_NAME,
     configName,
-    urlParams,
+    // urlParams,
     PARTNER_NAME,
     PATH_LOCATION,
     FULL_LOCATION,
-    PERCENT_CONTROL,
+    MOONLIGHT_PERCENT_CONTROL,
     docClient
 } from "./global_vars";
 
@@ -47,7 +47,7 @@ var user_info = {
 const generateUUID = () => {
     // Public Domain/MIT
     var d = new Date().getTime(); //Timestamp
-    var d2 = (performance && performance.now && performance.now() * 1000) || 0; //Time in microseconds since page-load or 0 if unsupported
+    var d2 = 0//(performance && performance.now && performance.now() * 1000) || 0; //Time in microseconds since page-load or 0 if unsupported
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
         var r = Math.random() * 16; //random number between 0 and 16
         if (d > 0) {
@@ -69,7 +69,7 @@ const generateStatus = () => {
     const randNumber = Math.floor(Math.random() * 100) + 1
     // console.log("number",randNumber)
     let status = "";
-    if (randNumber < PERCENT_CONTROL) {
+    if (randNumber < MOONLIGHT_PERCENT_CONTROL) {
         status = "control"
     } else {
         status = "experiment"
@@ -105,6 +105,7 @@ const checkLocal = () => {
         user_info["local"] = false;
     }
 };
+
 const gather_ip_attributes = () => {
     // user_info = {}
     fetch("https://extreme-ip-lookup.com/json/")
@@ -151,14 +152,14 @@ const grabSessionSpecificInfo = () => {
 }
 
 
-// create a session_id to track events that all happen within one session.  Here session is defined as duration of the page.
-const session_id_start = generateUUID();
-sessionStorage.setItem("session_id", session_id_start);
+
 
 // next section defines the user_id and sets it into a cookie so repeate users can be identified
+let session_id_start = "";
 let USER_ID = "";
 let STATUS = "";
 let location_info = {}
+let urlParams = "";
 // constant/function that sets a cookie (allows us to track repeate vistors)
 const setCookie = (cname, cvalue, exdays) => {
     var d = new Date();
@@ -378,9 +379,10 @@ const queryData = (event, adjustment_id, default_adjustment_key, execute) => {
                 //     }
                 // }
                 var adjustment = unmarshall(items[0]);
+                console.log("Adjustment", adjustment)
                 window.localStorage.setItem(adjustment_id, JSON.stringify(adjustment))
                 if (execute) {
-                    // console.log("executing")
+                    console.log("executing")
                     resolve(executeChange(adjustment, event))
                 }
                 return
@@ -423,8 +425,8 @@ const generate_adjustment_key = (adjustment) => {
 
 
 const gatherAdjustment = (adjustment, updateDict) => {
-    // console.log("starting adjustment");
-    // console.log("adjustment event", adjustment.id);
+    console.log("starting adjustment");
+    console.log("adjustment event", adjustment.id);
 
     // the adjustment key depends on the adjustment (user_id, event_path, etc)
     const adjustment_key = generate_adjustment_key(adjustment);
@@ -463,8 +465,14 @@ const set_ab_path = (action) => {
 
 export function retireve_configs(componentID, updateDict) {
 
+    urlParams = new URLSearchParams(window.location.search);
+    // create a session_id to track events that all happen within one session.  Here session is defined as duration of the page.
+    session_id_start = generateUUID();
+    sessionStorage.setItem("session_id", session_id_start);
+
     // need to add in section here to identify user and split into control or experiment based on that
     const cookie = getUserId();
+    console.log("Starting")
     USER_ID = getCookie("moonlight.uuid");
     const statusCookie = getStatus();
     STATUS = getCookie("moonlight.status");
@@ -477,7 +485,7 @@ export function retireve_configs(componentID, updateDict) {
     // console.log("retrieving")
     //Initialize
     var availableConfigs = JSON.parse(window.localStorage.getItem("availableConfigs"))
-    // console.log("aa", availableConfigs)
+    console.log("aa", availableConfigs)
     var adjustment = {}
     // if (availableConfigs) {
     if (false) {
@@ -498,8 +506,8 @@ export function retireve_configs(componentID, updateDict) {
     }
 
     let retries = 0;
-    // console.log("THis is the top", TOP_LOCATION)
-    // console.log("This is the table", CONFIG_TABLE_NAME)
+    console.log("THis is the top", TOP_LOCATION)
+    console.log("This is the table", CONFIG_TABLE_NAME)
     const params = {
         TableName: CONFIG_TABLE_NAME,
         KeyConditionExpression: "config_group_id = :c",
@@ -525,7 +533,7 @@ export function retireve_configs(componentID, updateDict) {
                 } else {
                     availableConfigs = unmarshall(items[0]).available_configs;
                     window.localStorage.setItem("availableConfigs", JSON.stringify(availableConfigs))
-                    // console.log("Using Config: ", configName)
+                    console.log("Using Config: ", configName)
                     if (PATH_LOCATION in availableConfigs[configName]) {
                         adjustment = availableConfigs[configName][PATH_LOCATION]["REPLACEMENT"][componentID]
                         set_ab_path(adjustment)
