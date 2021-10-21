@@ -34,7 +34,11 @@ export var urlParams = ""
 
 
 function MoonlightInit(config) {
-  console.log("Initiating")
+  if (!CONFIG === {}){
+    return
+  }
+  // console.log("Initiating")
+
   // urlParams = new URLSearchParams(window.location.search);
   CONFIG = config
   ENV = CONFIG.ENV || "develop"

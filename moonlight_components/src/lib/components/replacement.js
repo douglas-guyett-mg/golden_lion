@@ -379,10 +379,10 @@ const queryData = (event, adjustment_id, default_adjustment_key, execute) => {
                 //     }
                 // }
                 var adjustment = unmarshall(items[0]);
-                console.log("Adjustment", adjustment)
+                // console.log("Adjustment", adjustment)
                 window.localStorage.setItem(adjustment_id, JSON.stringify(adjustment))
                 if (execute) {
-                    console.log("executing")
+                    // console.log("executing")
                     resolve(executeChange(adjustment, event))
                 }
                 return
@@ -425,8 +425,8 @@ const generate_adjustment_key = (adjustment) => {
 
 
 const gatherAdjustment = (adjustment, updateDict) => {
-    console.log("starting adjustment");
-    console.log("adjustment event", adjustment.id);
+    // console.log("starting adjustment");
+    // console.log("adjustment event", adjustment.id);
 
     // the adjustment key depends on the adjustment (user_id, event_path, etc)
     const adjustment_key = generate_adjustment_key(adjustment);
@@ -472,7 +472,7 @@ export function retireve_configs(componentID, updateDict) {
 
     // need to add in section here to identify user and split into control or experiment based on that
     const cookie = getUserId();
-    console.log("Starting")
+    // console.log("Starting")
     USER_ID = getCookie("moonlight.uuid");
     const statusCookie = getStatus();
     STATUS = getCookie("moonlight.status");
@@ -485,7 +485,7 @@ export function retireve_configs(componentID, updateDict) {
     // console.log("retrieving")
     //Initialize
     var availableConfigs = JSON.parse(window.localStorage.getItem("availableConfigs"))
-    console.log("aa", availableConfigs)
+    // console.log("aa", availableConfigs)
     var adjustment = {}
     // if (availableConfigs) {
     if (false) {
@@ -506,8 +506,8 @@ export function retireve_configs(componentID, updateDict) {
     }
 
     let retries = 0;
-    console.log("THis is the top", TOP_LOCATION)
-    console.log("This is the table", CONFIG_TABLE_NAME)
+    // console.log("THis is the top", TOP_LOCATION)
+    // console.log("This is the table", CONFIG_TABLE_NAME)
     const params = {
         TableName: CONFIG_TABLE_NAME,
         KeyConditionExpression: "config_group_id = :c",
@@ -533,7 +533,7 @@ export function retireve_configs(componentID, updateDict) {
                 } else {
                     availableConfigs = unmarshall(items[0]).available_configs;
                     window.localStorage.setItem("availableConfigs", JSON.stringify(availableConfigs))
-                    console.log("Using Config: ", configName)
+                    // console.log("Using Config: ", configName)
                     if (PATH_LOCATION in availableConfigs[configName]) {
                         adjustment = availableConfigs[configName][PATH_LOCATION]["REPLACEMENT"][componentID]
                         set_ab_path(adjustment)
