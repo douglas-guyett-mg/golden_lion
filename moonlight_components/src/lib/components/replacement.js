@@ -135,7 +135,7 @@ const gather_ip_attributes = () => {
         });
 };
 
-const grabSessionSpecificInfo = () => {
+export const grabSessionSpecificInfo = () => {
 
     const session_info = { "referrer": document.referrer }
 
@@ -204,7 +204,7 @@ const getUserId = () => {
 };
 
 // need to add function here that creates condition TODOO
-const getStatus = () => {
+export function getStatus(){
     try {
         const cookieName = "moonlight.status";
         // Get cookie
@@ -213,7 +213,7 @@ const getStatus = () => {
             const status = generateStatus()
             const newCookie = setCookie(cookieName, status, 1000);
             location_info = gather_ip_attributes()
-            return newCookie;
+            return status;
         }
         return cookie;
     } catch (e) {
@@ -229,6 +229,17 @@ export const sendEvent = (event) => {
     // console.log("Starting event send")
 
     const event_id = generateUUID()
+    if (session_id_start === ""){
+        session_id_start = generateUUID();
+        sessionStorage.setItem("session_id", session_id_start);
+
+    }
+    if (USER_ID === "") {
+         // need to add in section here to identify user and split into control or experiment based on that
+        const cookie = getUserId();
+        // console.log("Starting")
+        USER_ID = getCookie("moonlight.uuid");
+    }
 
     // console.log("event_id",event_id)
 
@@ -245,6 +256,8 @@ export const sendEvent = (event) => {
         user_id: USER_ID,
     };
 
+    
+
     const params = {
         TableName: EVENT_TABLE_NAME,
         Item: marshall(eventData),
@@ -252,6 +265,7 @@ export const sendEvent = (event) => {
 
     // console.log("About to send event");
     // console.log("params", params);
+    // console.log("event_id", event_id)
     docClient.putItem(params, (err, data) => {
         if (err) {
             console.warn("Moonlight: Sending Event Error", err);
@@ -408,7 +422,7 @@ const generate_adjustment_key = (adjustment) => {
     }
     else if (adjustment.adjustment_key_name == "state") {
         // console.log("location_info",location_info)
-        const utm_campaign = urlParams.get("utm_campaign")
+        const utm_campaign = urlParams.get("utm_content")
         if (utm_campaign) {
             return utm_campaign;
         }

@@ -3,7 +3,7 @@
   "description": "Moonlight components to optimize your webpage.",
   "author": "Moonlight",
   "keywords": ["react", "components", "ui", "personalization","ab test"],
-  "version": "0.1.38",
+  "version": "0.1.56",
   "dependencies": {
     "@babel/polyfill": "^7.12.1",
     "@testing-library/jest-dom": "^5.11.4",
