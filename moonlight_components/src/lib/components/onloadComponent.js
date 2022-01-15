@@ -20,6 +20,8 @@ const OnloadComponent = ({ adjustmentId }) => {
 
     useEffect(() => {
 
+        action["trigger_element_path"] = window.location.pathname
+
         sendEvent(action)
         
     },[]);
