@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "core-js": "^3.18.3"
+    "core-js": "^3.18.3",
+    "react-visibility-sensor": "^5.1.1"
   }
 }
