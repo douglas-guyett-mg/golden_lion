@@ -3,12 +3,14 @@ import React from "react"
 
 import { useEffect } from 'react'
 import VisibilitySensor from 'react-visibility-sensor'
-import { sendEvent } from "./replacement"
+import { sendEvent } from "../replacement"
 
 
 const Viewed = ({ children, componentId, setupId }) => {
 
     var pageLocation = ""
+
+    const sendSetUpId = setupId ? setupId : ""
 
     const action = {
         "event_type": "action",
@@ -20,14 +22,12 @@ const Viewed = ({ children, componentId, setupId }) => {
     }
 
     useEffect(() => {
-        // pageLocation = window.location.pathname
-
-        action["location"] = window.location.href + ":" + componentId + ":" + setupId
-    });
+        action["location"] = window.location.href + ":" + componentId + ":" + sendSetUpId
+    },[]);
 
     const onSlide = (isVisible) => {
         // isVisible ? alert("this worked") : ""
-        sendEvent(action)
+        isVisible ? sendEvent(action) : ""
     }
 
 

@@ -1,6 +1,10 @@
-import ReplaceComponent from './components/replaceComponent';
-import ActionComponent from './components/actionComponent';
-import OnloadComponent from './components/onloadComponent';
-import MoonlightInit from './components/global_vars';
+// import ReplaceComponent from './components/replaceComponent';
+// import ActionComponent from './components/actionComponent';
+// import OnloadComponent from './components/onloadComponent';
+import Click from './components/actions/Click';
+import Hover from './components/actions/Hover';
+import PageView from './components/actions/PageView';
+import Viewed from './components/actions/Viewed';
+import MoonlightInit from './components/replacement';
 import {getStatus, grabSessionSpecificInfo} from './components/replacement'
-export { ReplaceComponent, ActionComponent, OnloadComponent, MoonlightInit, getStatus, grabSessionSpecificInfo};
+export { Click, Hover, PageView, Viewed, MoonlightInit, getStatus, grabSessionSpecificInfo};

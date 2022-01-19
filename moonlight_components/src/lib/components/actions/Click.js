@@ -1,5 +1,5 @@
 import React from "react"
-import { sendEvent } from "./replacement"
+import { sendEvent } from "../replacement"
 
 import { useEffect } from 'react'
 
@@ -7,6 +7,8 @@ import { useEffect } from 'react'
 const Click = ({ children, componentId, setupId }) => {
 
     var pageLocation = ""
+
+    const sendSetUpId = setupId ? setupId : ""
 
     const action = {
         "event_type": "action",
@@ -20,15 +22,15 @@ const Click = ({ children, componentId, setupId }) => {
     useEffect(() => {
         // pageLocation = window.location.pathname
 
-        action["location"] = window.location.href + ":" + componentId + ":" + setupId
+        action["location"] = window.location.href + ":" + componentId + ":" + sendSetUpId
     });
 
 
 
     return (
         <>
-        <div onClick={() => sendEvent(action)}>
-            <children.type {...children.props} >{children.props.children}</children.type>
+            <div onMouseDown={() => sendEvent(action)}>
+                <children.type {...children.props} >{children.props.children}</children.type>
             </div>
         </>
     )

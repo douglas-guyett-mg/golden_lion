@@ -3,14 +3,16 @@ import React from "react"
 
 import { useEffect, useState } from 'react'
 // import VisibilitySensor from 'react-visibility-sensor'
-import { sendEvent } from "./replacement"
+import { sendEvent } from "../replacement"
 
 const HOVER_WAIT_TIME = 5
 
 
-const Viewed = ({ children, componentId, setupId }) => {
+const Hover = ({ children, componentId, setupId }) => {
 
     var pageLocation = ""
+
+    const sendSetUpId = setupId ? setupId : ""
 
    const [count, setCount] = useState(0)
    const [hoverStart, setHoverStart] = useState(0)
@@ -29,7 +31,7 @@ const Viewed = ({ children, componentId, setupId }) => {
     useEffect(() => {
         // pageLocation = window.location.pathname
 
-        action["location"] = window.location.href + ":" + componentId + ":" + setupId
+        action["location"] = window.location.href + ":" + componentId + ":" + sendSetUpId
         const timer = setTimeout(() => setCount(count + 1), 1e3)
 
         // return () => clearTimeout(timer)
@@ -38,13 +40,13 @@ const Viewed = ({ children, componentId, setupId }) => {
 
     const startTimer = () => {
 
-        console.log("starting count",count)
+        // console.log("starting count",count)
         setHoverStart(count)
     }
 
     const checkDuration = () => {
-        console.log("exit")
-        console.log("Count",count)
+        // console.log("exit")
+        // console.log("Count",count)
         if ((count - hoverStart) > HOVER_WAIT_TIME) {
             // alert("this worked")
             action["event_info"] = {"duration":count - hoverStart}
@@ -88,4 +90,4 @@ const Viewed = ({ children, componentId, setupId }) => {
 }
 
 
-export default Viewed;
+export default Hover;

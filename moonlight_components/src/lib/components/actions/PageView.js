@@ -1,11 +1,13 @@
 import React from "react"
-import { sendEvent } from "./replacement"
+import { sendEvent } from "../replacement"
 import { useEffect } from 'react'
 
 
 
 
-const OnloadComponent = ({ adjustmentId }) => {
+const PageView = ({ componentId, setupId }) => {
+
+    const sendSetUpId = setupId ? setupId : ""
 
 
     const action = {
@@ -20,8 +22,9 @@ const OnloadComponent = ({ adjustmentId }) => {
     useEffect(() => {
         // pageLocation = window.location.pathname
 
-        action["location"] = window.location.href + ":" + componentId + ":" + setupId
+        action["location"] = window.location.href + ":" + componentId + ":" + sendSetUpId
         sendEvent(action)
+        // getSessionId()
         
 
         // return () => clearTimeout(timer)
@@ -37,4 +40,4 @@ const OnloadComponent = ({ adjustmentId }) => {
 }
 
 
-export default OnloadComponent;
+export default PageView;

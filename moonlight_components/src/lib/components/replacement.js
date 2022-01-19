@@ -1,24 +1,60 @@
 // console.log("starting")
 // import AWS from "aws-sdk";
 
+
+
+import { DynamoDB } from "@aws-sdk/client-dynamodb";
+import { CognitoIdentityClient } from "@aws-sdk/client-cognito-identity"
+import { fromCognitoIdentityPool } from "@aws-sdk/credential-provider-cognito-identity"
+
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 // import * as AWS from "@aws-sdk/client-dynamodb";
-import {
-    CONFIG,
-    TOP_LOCATION,
-    REGION,
-    ID_POOL_ID,
-    REC_TABLE_NAME,
-    EVENT_TABLE_NAME,
-    CONFIG_TABLE_NAME,
-    configName,
-    // urlParams,
-    PARTNER_NAME,
-    PATH_LOCATION,
-    FULL_LOCATION,
-    MOONLIGHT_PERCENT_CONTROL,
-    docClient
-} from "./global_vars";
+// import {
+//     TOP_LOCATION,
+//     REGION,
+//     ID_POOL_ID,
+//     REC_TABLE_NAME,
+//     EVENT_TABLE_NAME,
+//     CONFIG_TABLE_NAME,
+//     configName,
+//     // urlParams,
+//     PARTNER_NAME,
+//     PATH_LOCATION,
+//     FULL_LOCATION,
+//     MOONLIGHT_PERCENT_CONTROL,
+//     docClient
+// } from "./global_vars";
+
+export var CONFIG = {}
+export var ENV = ""
+export var PARTNER = ""
+export var PARTNER_NAME = ""
+export var configName = ""
+
+
+export var REGION = ""
+export var ROLE_NAME = ""
+export var ID_POOL_ID = ""
+export var AWS_ROLE = ""
+
+
+export var HOVER_WAIT_TIME = null
+
+export var TOP_LOCATION = ""
+export var PATH_LOCATION = ""
+export var FULL_LOCATION = ""
+
+export var MOONLIGHT_PERCENT_CONTROL = ""
+
+export var REC_TABLE_NAME = ""
+export var EVENT_TABLE_NAME = ""
+export var CONFIG_TABLE_NAME = ""
+
+export var docClient = null
+
+export var urlParams = ""
+
+
 
 //Initialize
 let retries = 0;
@@ -121,31 +157,41 @@ const gather_ip_attributes = () => {
             // console.log("user location", user_info["location"]);
             // checkLocal();
             const event = {
-                event_value: 0,
+                event_value: "0.0",
                 event_type: "locationInfo",
                 event_info: location_info,
-                trigger_method: "locationInfo",
+                trigger: "locationInfo",
                 trigger_element_path: "onload",
-                element_path: " "
+                element_path: " ",
+                location: window.location.href + ":" + "n/a" + ":" + setupId
             }
+            // console.log("sending location info",event.event_type)
             sendEvent(event)
         })
         .catch((data, status) => {
-            console.log("Request failed");
+            console.log("Request failed", data);
+            // console.log("status",status);
         });
 };
 
 export const grabSessionSpecificInfo = () => {
 
-    const session_info = { "referrer": document.referrer }
+    gather_ip_attributes()
+    // need line to grab utm variables
+    // need line to grab moonlight id
+    // need line to grab device information
 
+    const session_info = { 
+        "sessionId":SESSION_ID,
+        "referrer": document.referrer }
+    
+    // console.log("sending session info")
     const event = {
         event_value: 0,
-        event_type: "sessionInfo",
+        event_type: "action",
         event_info: session_info,
-        trigger_method: "sessionInfo",
-        trigger_element_path: "onload",
-        element_path: " "
+        trigger: "NewSession",
+        location: window.location.href + ":" + "N/A" + ":" + setupId
     }
     sendEvent(event)
 
@@ -155,11 +201,12 @@ export const grabSessionSpecificInfo = () => {
 
 
 // next section defines the user_id and sets it into a cookie so repeate users can be identified
-let session_id_start = "";
 let USER_ID = "";
-let STATUS = "";
-let location_info = {}
-let urlParams = "";
+let SESSION_ID = "";
+let setupId = "";
+// let STATUS = "";
+// let location_info = {}
+// let urlParams = "";
 // constant/function that sets a cookie (allows us to track repeate vistors)
 const setCookie = (cname, cvalue, exdays) => {
     var d = new Date();
@@ -185,42 +232,79 @@ const getCookie = (cname) => {
 };
 // check to see if the ID has already been set, if so grab otherwise set a new cookie
 const getUserId = () => {
+    // console.log("checking user id")
     try {
         const cookieName = "moonlight.uuid";
         // Get cookie
-        const cookie = getCookie(cookieName);
-        if (!cookie) {
-            const uuid = generateUUID();
-            const newCookie = setCookie(cookieName, uuid, 1000);
+        const uuid = getCookie(cookieName);
+        if (!uuid) {
+            // console.log("user id not found creating new one")
+            const uuidNew = generateUUID();
+            const newCookie = setCookie(cookieName, uuidNew, 1000);
 
-            return newCookie;
+            return uuidNew;
         }
         user_info["repeat_visitor"] = true;
-        return cookie;
+        return uuid;
     } catch (e) {
         console.log("Client retrieval error");
         console.warn(`Moonlight: Client Id Retrieval Error ${e}`);
     }
 };
 
-// need to add function here that creates condition TODOO
-export function getStatus(){
+export const getSessionId = () => {
+    // console.log("checking session id")
     try {
-        const cookieName = "moonlight.status";
+        const cookieName = "moonlight.sessionId";
         // Get cookie
-        const cookie = getCookie(cookieName);
-        if (!cookie) {
-            const status = generateStatus()
-            const newCookie = setCookie(cookieName, status, 1000);
-            location_info = gather_ip_attributes()
-            return status;
+        const uuid = getCookie(cookieName);
+        if (!uuid) {
+            let sessionId = window.localStorage.getItem("SESSION_ID")
+            //TODO: NEED TO ADD IN ANOTHER BREAK FOR QUERY PARAM
+            if (!sessionId){
+                // console.log("session id not found creating new one")
+                sessionId = generateUUID();
+                const newCookie = setCookie(cookieName, sessionId, 1000)
+                window.localStorage.setItem("SESSION_ID",sessionId)
+                grabSessionSpecificInfo()
+            }
+            return sessionId;
         }
-        return cookie;
+        // user_info["repeat_visitor"] = true;
+        return uuid;
     } catch (e) {
-        console.log("Status retrieval error");
-        console.warn(`Moonlight: Status Retrieval Error ${e}`);
+        console.log("Client retrieval error");
+        console.warn(`Moonlight: Client Id Retrieval Error ${e}`);
     }
 };
+
+
+// need to add function here that creates condition TODOO
+// export function getStatus(){
+//     try {
+//         const cookieName = "moonlight.status";
+//         // Get cookie
+//         const cookie = getCookie(cookieName);
+//         if (!cookie) {
+//             const status = generateStatus()
+//             const newCookie = setCookie(cookieName, status, 1000);
+//             location_info = gather_ip_attributes()
+//             return status;
+//         }
+//         return cookie;
+//     } catch (e) {
+//         console.log("Status retrieval error");
+//         console.warn(`Moonlight: Status Retrieval Error ${e}`);
+//     }
+// };
+
+function checkVisitor(){
+    //check if user id is set
+    // console.log("Start to check visitor")
+    USER_ID = getUserId()
+    SESSION_ID = getSessionId()
+
+}
 
 
 export const sendEvent = (event) => {
@@ -229,17 +313,17 @@ export const sendEvent = (event) => {
     // console.log("Starting event send")
 
     const event_id = generateUUID()
-    if (session_id_start === ""){
-        session_id_start = generateUUID();
-        sessionStorage.setItem("session_id", session_id_start);
+    // if (session_id_start === ""){
+    //     session_id_start = generateUUID();
+    //     sessionStorage.setItem("session_id", session_id_start);
 
-    }
-    if (USER_ID === "") {
-         // need to add in section here to identify user and split into control or experiment based on that
-        const cookie = getUserId();
-        // console.log("Starting")
-        USER_ID = getCookie("moonlight.uuid");
-    }
+    // }
+    // if (USER_ID === "") {
+    //      // need to add in section here to identify user and split into control or experiment based on that
+    //     const cookie = getUserId();
+    //     // console.log("Starting")
+    //     USER_ID = getCookie("moonlight.uuid");
+    // }
 
     // console.log("event_id",event_id)
 
@@ -252,14 +336,18 @@ export const sendEvent = (event) => {
         location: event.location,
         trigger: event.trigger,
         partner: PARTNER_NAME,
-        session_id: sessionStorage.getItem("session_id") || "error",
+        session_id: SESSION_ID,
         user_id: USER_ID,
     };
+
+    // console.log("ee",eventData)
 
     const params = {
         TableName: EVENT_TABLE_NAME,
         Item: marshall(eventData),
     };
+
+
 
     // console.log("About to send event");
     // console.log("params", params);
@@ -270,6 +358,68 @@ export const sendEvent = (event) => {
         }
     });
 };
+
+
+function MoonlightInit(config) {
+    if (!CONFIG === {}){
+      return
+    }
+    // console.log("Initiating")
+  
+    // urlParams = new URLSearchParams(window.location.search);
+    CONFIG = config
+    ENV = CONFIG.ENV || "develop"
+    PARTNER = CONFIG.UNIVERSE
+    PARTNER_NAME = CONFIG.PARTNER_NAME
+    configName = CONFIG.configName || "active_config";
+  
+  
+    REGION = CONFIG.REGION || "us-east-1";
+    ROLE_NAME = CONFIG.ROLE_NAME || "webflow_adjustment";
+    ID_POOL_ID = CONFIG.ID_POOL_ID
+    AWS_ROLE = CONFIG.AWS_ROLE || `Cognito_${ROLE_NAME}_${PARTNER}_${ENV}_Unauth_Role`;
+  
+  
+    HOVER_WAIT_TIME = CONFIG.HOVER_WAIT_TIME || 1000;
+  
+    const REC_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "webflow_adjustments";
+    const EVENT_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "web_events";
+    const CONFIG_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "webflow_config";
+    const EXECUTION_LEVEL = CONFIG.EXECUTION_LEVEL || "user_interaction";
+  
+    TOP_LOCATION = CONFIG.TOP_LOCATION + ":" + PARTNER_NAME + ":base" //|| "key" + window.location.protocol + "//" + window.location.host;
+    PATH_LOCATION = "/ReactComponent";
+    FULL_LOCATION = TOP_LOCATION + PATH_LOCATION
+  
+    MOONLIGHT_PERCENT_CONTROL = CONFIG.PRECENT_CONTROL || 10;
+  
+    REC_TABLE_NAME = `${REC_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
+    EVENT_TABLE_NAME = `${EVENT_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
+    CONFIG_TABLE_NAME = `${CONFIG_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
+  
+    /**
+   * AWS Retrieval
+   */
+  
+  
+    const cognitoIdentityClient = new CognitoIdentityClient({
+      region: "us-east-1"
+    });
+  
+    docClient = new DynamoDB({
+      region: REGION,
+      credentials: fromCognitoIdentityPool({
+        client: cognitoIdentityClient,
+        identityPoolId: ID_POOL_ID
+      })
+    });
+    checkVisitor()
+
+
+  }
+  
+  
+export default MoonlightInit;
 
 // const replaceContentOne = (obj, replacement_info, adjustment_key_name, trigger_element, event_info) => {
 //     var success = true
