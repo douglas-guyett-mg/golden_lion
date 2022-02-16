@@ -59,6 +59,10 @@ export var urlParams = ""
 //Initialize
 let retries = 0;
 
+let USER_ID = "";
+let SESSION_ID = "";
+let setupId = "";
+
 // /**
 //  * AWS Retrieval
 //  */
@@ -181,10 +185,11 @@ export const grabSessionSpecificInfo = () => {
     // need line to grab moonlight id
     // need line to grab device information
 
-    const session_info = { 
-        "sessionId":SESSION_ID,
-        "referrer": document.referrer }
-    
+    const session_info = {
+        "sessionId": SESSION_ID,
+        "referrer": document.referrer
+    }
+
     // console.log("sending session info")
     const event = {
         event_value: 0,
@@ -201,9 +206,7 @@ export const grabSessionSpecificInfo = () => {
 
 
 // next section defines the user_id and sets it into a cookie so repeate users can be identified
-let USER_ID = "";
-let SESSION_ID = "";
-let setupId = "";
+
 // let STATUS = "";
 // let location_info = {}
 // let urlParams = "";
@@ -241,14 +244,25 @@ const getUserId = () => {
             // console.log("user id not found creating new one")
             const uuidNew = generateUUID();
             const newCookie = setCookie(cookieName, uuidNew, 1000);
-
+            USER_ID = uuidNew
+            const event = {
+                event_value: 0,
+                event_type: "action",
+                event_info: {},
+                trigger: "NewUser",
+                location: window.location.href + ":" + "N/A" + ":" + setupId
+            }
+            sendEvent(event)
             return uuidNew;
         }
         user_info["repeat_visitor"] = true;
         return uuid;
     } catch (e) {
-        console.log("Client retrieval error");
-        console.warn(`Moonlight: Client Id Retrieval Error ${e}`);
+
+
+        console.warn(`Moonlight: User Id Retrieval Error ${e}`);
+
+
     }
 };
 
@@ -261,11 +275,12 @@ export const getSessionId = () => {
         if (!uuid) {
             let sessionId = window.localStorage.getItem("SESSION_ID")
             //TODO: NEED TO ADD IN ANOTHER BREAK FOR QUERY PARAM
-            if (!sessionId){
+            if (!sessionId) {
                 // console.log("session id not found creating new one")
                 sessionId = generateUUID();
+                SESSION_ID = sessionId
                 const newCookie = setCookie(cookieName, sessionId, 1000)
-                window.localStorage.setItem("SESSION_ID",sessionId)
+                window.localStorage.setItem("SESSION_ID", sessionId)
                 grabSessionSpecificInfo()
             }
             return sessionId;
@@ -273,8 +288,20 @@ export const getSessionId = () => {
         // user_info["repeat_visitor"] = true;
         return uuid;
     } catch (e) {
-        console.log("Client retrieval error");
-        console.warn(`Moonlight: Client Id Retrieval Error ${e}`);
+        // console.log("First Attempt Session")
+        // console.log("Error: ", e)
+
+        // try {
+        //     window.onload = function () {
+        //         getSessionId()
+        //     };
+
+        // } catch (error) {
+        // console.log("Client retrieval error");
+        console.warn(`Moonlight: Session Id Retrieval Error ${e}`);
+
+        // }
+
     }
 };
 
@@ -298,7 +325,7 @@ export const getSessionId = () => {
 //     }
 // };
 
-function checkVisitor(){
+export function checkVisitor() {
     //check if user id is set
     // console.log("Start to check visitor")
     USER_ID = getUserId()
@@ -361,64 +388,74 @@ export const sendEvent = (event) => {
 
 
 function MoonlightInit(config) {
-    if (!CONFIG === {}){
-      return
+    if (!CONFIG === {}) {
+        return
     }
     // console.log("Initiating")
-  
+
     // urlParams = new URLSearchParams(window.location.search);
     CONFIG = config
     ENV = CONFIG.ENV || "develop"
     PARTNER = CONFIG.UNIVERSE
     PARTNER_NAME = CONFIG.PARTNER_NAME
     configName = CONFIG.configName || "active_config";
-  
-  
+
+
     REGION = CONFIG.REGION || "us-east-1";
     ROLE_NAME = CONFIG.ROLE_NAME || "webflow_adjustment";
     ID_POOL_ID = CONFIG.ID_POOL_ID
     AWS_ROLE = CONFIG.AWS_ROLE || `Cognito_${ROLE_NAME}_${PARTNER}_${ENV}_Unauth_Role`;
-  
-  
+
+
     HOVER_WAIT_TIME = CONFIG.HOVER_WAIT_TIME || 1000;
-  
+
     const REC_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "webflow_adjustments";
     const EVENT_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "web_events";
     const CONFIG_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "webflow_config";
     const EXECUTION_LEVEL = CONFIG.EXECUTION_LEVEL || "user_interaction";
-  
+
     TOP_LOCATION = CONFIG.TOP_LOCATION + ":" + PARTNER_NAME + ":base" //|| "key" + window.location.protocol + "//" + window.location.host;
     PATH_LOCATION = "/ReactComponent";
     FULL_LOCATION = TOP_LOCATION + PATH_LOCATION
-  
+
     MOONLIGHT_PERCENT_CONTROL = CONFIG.PRECENT_CONTROL || 10;
-  
+
     REC_TABLE_NAME = `${REC_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
     EVENT_TABLE_NAME = `${EVENT_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
     CONFIG_TABLE_NAME = `${CONFIG_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
-  
+
     /**
    * AWS Retrieval
    */
-  
-  
+
+
     const cognitoIdentityClient = new CognitoIdentityClient({
-      region: "us-east-1"
+        region: "us-east-1"
     });
-  
+
     docClient = new DynamoDB({
-      region: REGION,
-      credentials: fromCognitoIdentityPool({
-        client: cognitoIdentityClient,
-        identityPoolId: ID_POOL_ID
-      })
+        region: REGION,
+        credentials: fromCognitoIdentityPool({
+            client: cognitoIdentityClient,
+            identityPoolId: ID_POOL_ID
+        })
     });
+    // try {
     checkVisitor()
 
+    // } catch (error) {
+    //     window.onload = function() {
+    //         checkVisitor()
+    //     };
 
-  }
-  
-  
+
+    // }
+
+
+
+}
+
+
 export default MoonlightInit;
 
 // const replaceContentOne = (obj, replacement_info, adjustment_key_name, trigger_element, event_info) => {

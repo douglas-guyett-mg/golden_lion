@@ -18,7 +18,7 @@ const Viewed = ({ children, componentId, setupId }) => {
         "name": componentId,
         "trigger": "Viewed",
         "event_value": "0.0",
-        "location": ""
+        "location": "not_set:" + ":" + componentId + ":" + sendSetUpId
     }
 
     useEffect(() => {
