@@ -19,17 +19,34 @@ const Click = ({ children, componentId, setupId }) => {
         "location": ""
     }
 
+
+
     useEffect(() => {
         // pageLocation = window.location.pathname
 
         action["location"] = window.location.href + ":" + componentId + ":" + sendSetUpId
     });
 
+    const logClick = (e) => {
+
+
+        var tmp = document.createElement("div");
+        const newEl = e.target.cloneNode(true)
+        tmp.appendChild(newEl);
+        console.log(tmp.innerHTML);
+
+
+        action.event_info = {"sub_element":tmp.innerHTML}
+        sendEvent(action)
+
+
+    }
+
 
 
     return (
         <>
-            <div onMouseDown={() => sendEvent(action)}>
+            <div onMouseDown={(e) => logClick(e)}>
                 <children.type {...children.props} >{children.props.children}</children.type>
             </div>
         </>

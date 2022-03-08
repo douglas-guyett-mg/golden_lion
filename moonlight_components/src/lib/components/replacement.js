@@ -44,7 +44,7 @@ export var TOP_LOCATION = ""
 export var PATH_LOCATION = ""
 export var FULL_LOCATION = ""
 
-export var MOONLIGHT_PERCENT_CONTROL = ""
+export var MOONLIGHT_PERCENT_CONTROL = 0
 
 export var REC_TABLE_NAME = ""
 export var EVENT_TABLE_NAME = ""
@@ -53,6 +53,7 @@ export var CONFIG_TABLE_NAME = ""
 export var docClient = null
 
 export var urlParams = ""
+export var BaseDomain = ""
 
 
 
@@ -105,7 +106,7 @@ const generateUUID = () => {
 
 
 const generateStatus = () => {
-    // console.log("Generating status")
+    console.log("Generating status")
     const randNumber = Math.floor(Math.random() * 100) + 1
     // console.log("number",randNumber)
     let status = "";
@@ -119,15 +120,18 @@ const generateStatus = () => {
     // newUserInfo["city"] = location_info["city"]
     // newUserInfo["country"] = location_info["country"]
 
-    const event = {
-        event_value: 0,
-        event_type: "newUser",
-        event_info: status,
-        trigger_method: "newUser",
-        trigger_element_path: "onload",
-        element_path: " "
-    }
-    sendEvent(event)
+
+
+
+    // const event = {
+    //     event_value: 0,
+    //     event_type: "newUser",
+    //     event_info: status,
+    //     trigger_method: "newUser",
+    //     trigger_element_path: "onload",
+    //     element_path: " "
+    // }
+    // sendEvent(event)
     return status
 };
 
@@ -214,8 +218,9 @@ export const grabSessionSpecificInfo = () => {
 const setCookie = (cname, cvalue, exdays) => {
     var d = new Date();
     d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
-    var expires = "expires=" + d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    var expires = "expires=" + d.toUTCString() + ";";
+    var domain = BaseDomain ? "domain=" + BaseDomain + ";" : "";
+    document.cookie = cname + "=" + cvalue + ";" + expires + domain +  "path=/";
 };
 // constant/function to get any exsiting cookies on page
 const getCookie = (cname) => {
@@ -307,23 +312,33 @@ export const getSessionId = () => {
 
 
 // need to add function here that creates condition TODOO
-// export function getStatus(){
-//     try {
-//         const cookieName = "moonlight.status";
-//         // Get cookie
-//         const cookie = getCookie(cookieName);
-//         if (!cookie) {
-//             const status = generateStatus()
-//             const newCookie = setCookie(cookieName, status, 1000);
-//             location_info = gather_ip_attributes()
-//             return status;
-//         }
-//         return cookie;
-//     } catch (e) {
-//         console.log("Status retrieval error");
-//         console.warn(`Moonlight: Status Retrieval Error ${e}`);
-//     }
-// };
+export function getStatus(){
+    try {
+        const cookieName = "moonlight.status";
+        // Get cookie
+        const cookie = getCookie(cookieName);
+        if (!cookie) {
+            const status = generateStatus()
+            const newCookie = setCookie(cookieName, status, 1000);
+            // location_info = gather_ip_attributes()
+            const event = {
+                event_value: 0,
+                event_type: "action",
+                event_info: {"status":status},
+                trigger: "NewStatus",
+                location: window.location.href + ":" + "N/A" + ":" + setupId
+            }
+            sendEvent(event)
+
+            return status;
+
+        }
+        return cookie;
+    } catch (e) {
+        console.log("Status retrieval error");
+        console.warn(`Moonlight: Status Retrieval Error ${e}`);
+    }
+};
 
 export function checkVisitor() {
     //check if user id is set
@@ -399,6 +414,7 @@ function MoonlightInit(config) {
     PARTNER = CONFIG.UNIVERSE
     PARTNER_NAME = CONFIG.PARTNER_NAME
     configName = CONFIG.configName || "active_config";
+    BaseDomain = CONFIG.BaseDomain || null
 
 
     REGION = CONFIG.REGION || "us-east-1";

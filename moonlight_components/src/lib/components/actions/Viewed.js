@@ -25,6 +25,7 @@ const Viewed = ({ children, componentId, setupId }) => {
         action["location"] = window.location.href + ":" + componentId + ":" + sendSetUpId
     },[]);
 
+    
     const onSlide = (isVisible) => {
         // isVisible ? alert("this worked") : ""
         isVisible ? sendEvent(action) : ""
