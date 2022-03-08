@@ -1,5 +1,4 @@
-// console.log("starting")
-// import AWS from "aws-sdk";
+
 
 
 
@@ -7,53 +6,39 @@ import { DynamoDB } from "@aws-sdk/client-dynamodb";
 import { CognitoIdentityClient } from "@aws-sdk/client-cognito-identity"
 import { fromCognitoIdentityPool } from "@aws-sdk/credential-provider-cognito-identity"
 
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
-// import * as AWS from "@aws-sdk/client-dynamodb";
-// import {
-//     TOP_LOCATION,
-//     REGION,
-//     ID_POOL_ID,
-//     REC_TABLE_NAME,
-//     EVENT_TABLE_NAME,
-//     CONFIG_TABLE_NAME,
-//     configName,
-//     // urlParams,
-//     PARTNER_NAME,
-//     PATH_LOCATION,
-//     FULL_LOCATION,
-//     MOONLIGHT_PERCENT_CONTROL,
-//     docClient
-// } from "./global_vars";
-
-export var CONFIG = {}
-export var ENV = ""
-export var PARTNER = ""
-export var PARTNER_NAME = ""
-export var configName = ""
+import { marshall } from "@aws-sdk/util-dynamodb"
 
 
-export var REGION = ""
-export var ROLE_NAME = ""
-export var ID_POOL_ID = ""
-export var AWS_ROLE = ""
+// Global Vars 
+var CONFIG = {}
+var ENV = ""
+var PARTNER = ""
+var PARTNER_NAME = ""
+var configName = ""
 
 
-export var HOVER_WAIT_TIME = null
+var REGION = ""
+var ROLE_NAME = ""
+var ID_POOL_ID = ""
+var AWS_ROLE = ""
 
-export var TOP_LOCATION = ""
-export var PATH_LOCATION = ""
-export var FULL_LOCATION = ""
 
-export var MOONLIGHT_PERCENT_CONTROL = 0
+var HOVER_WAIT_TIME = null
 
-export var REC_TABLE_NAME = ""
-export var EVENT_TABLE_NAME = ""
-export var CONFIG_TABLE_NAME = ""
+// var TOP_LOCATION = ""
+// var PATH_LOCATION = ""
+// var FULL_LOCATION = ""
 
-export var docClient = null
+var MOONLIGHT_PERCENT_CONTROL = 0
 
-export var urlParams = ""
-export var BaseDomain = ""
+var REC_TABLE_NAME = ""
+var EVENT_TABLE_NAME = ""
+var CONFIG_TABLE_NAME = ""
+
+var docClient = null
+
+// var urlParams = ""
+var BaseDomain = ""
 
 
 
@@ -64,22 +49,6 @@ let USER_ID = "";
 let SESSION_ID = "";
 let setupId = "";
 
-// /**
-//  * AWS Retrieval
-//  */
-
-
-//  const cognitoIdentityClient = new CognitoIdentityClient({
-//     region: "us-east-1"
-// });
-
-// const docClient = new DynamoDB({
-//     region: REGION,
-//     credentials: fromCognitoIdentityPool({
-//         client: cognitoIdentityClient,
-//         identityPoolId: ID_POOL_ID
-//     })
-// });
 
 var user_info = {
     repeat_visitor: false,
@@ -135,20 +104,6 @@ const generateStatus = () => {
     return status
 };
 
-// // add attributes to user
-// const setUser = () => {
-//     gather_ip_attributes();
-// };
-
-// const checkLocal = () => {
-//     const businessLocation = CONFIG.businessLocation || "Napa";
-
-//     if (user_info["location"] === businessLocation) {
-//         user_info["local"] = true;
-//     } else {
-//         user_info["local"] = false;
-//     }
-// };
 
 const gather_ip_attributes = () => {
     // user_info = {}
@@ -220,7 +175,7 @@ const setCookie = (cname, cvalue, exdays) => {
     d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
     var expires = "expires=" + d.toUTCString() + ";";
     var domain = BaseDomain ? "domain=" + BaseDomain + ";" : "";
-    document.cookie = cname + "=" + cvalue + ";" + expires + domain +  "path=/";
+    document.cookie = cname + "=" + cvalue + ";" + expires + domain + "path=/";
 };
 // constant/function to get any exsiting cookies on page
 const getCookie = (cname) => {
@@ -312,7 +267,7 @@ export const getSessionId = () => {
 
 
 // need to add function here that creates condition TODOO
-export function getStatus(){
+export function getStatus() {
     try {
         const cookieName = "moonlight.status";
         // Get cookie
@@ -324,7 +279,7 @@ export function getStatus(){
             const event = {
                 event_value: 0,
                 event_type: "action",
-                event_info: {"status":status},
+                event_info: { "status": status },
                 trigger: "NewStatus",
                 location: window.location.href + ":" + "N/A" + ":" + setupId
             }
@@ -402,40 +357,97 @@ export const sendEvent = (event) => {
 };
 
 
+
+
+
+// Function to Gather State
+function GatherCurrentState(){
+
+    // Check for Id cookie <- we don't use this but it is good to know because 
+    //will help with defining when behavior is abnormal
+
+    // Check for Status Cookie
+
+    // Check for Param
+
+    // set status var
+
+    // return status var
+
+
+}
+
+// Execute Server flow
+function RunServerSideSetUp(status){
+    
+    // note this must happen before redirect happens
+    // if TBD randomly choose status based on percentage passed in
+    // if status is experiment set mi query param to 002
+    // if status is control set mi query param to 001
+
+}
+
+// Execute Client Side Flow
+function RunClientSideSetUp(status){
+
+    // if status is TBD, set to N/A and stop
+    // get moonlight id
+    // get status && confirm that it equals input status
+    // If status is experiment get session id
+
+}
+
+// Function to initialize the required variables 
 function MoonlightInit(config) {
+
+    // Make sure that it is only initialized once <- this should be just a check
     if (!CONFIG === {}) {
+        console.error("Trying to initialize Moonlight More than once")
         return
     }
-    // console.log("Initiating")
 
-    // urlParams = new URLSearchParams(window.location.search);
+    // set the global configuration to the input config dict
     CONFIG = config
-    ENV = CONFIG.ENV || "develop"
+    // This is a name convention that is a hold over where we had a unique 'universe' for each partner
+    // TODO: clean up converntion in code so that partner actuall refers to partner...currently all partners on private Universe
     PARTNER = CONFIG.UNIVERSE
+    // Set the identifier for the partner
     PARTNER_NAME = CONFIG.PARTNER_NAME
-    configName = CONFIG.configName || "active_config";
+    // Allows us to set cookies that are accessible by all sub & main domains
     BaseDomain = CONFIG.BaseDomain || null
 
 
+    // Everything below is currently using the default values
+    // We want to default to the develop environment if it is not set <- we should update this so that we are using the production database (need to fix analytics for this)
+    ENV = CONFIG.ENV || "develop"
+
+    // Default aws vars required to access the unathenticated identity pool
     REGION = CONFIG.REGION || "us-east-1";
     ROLE_NAME = CONFIG.ROLE_NAME || "webflow_adjustment";
     ID_POOL_ID = CONFIG.ID_POOL_ID
     AWS_ROLE = CONFIG.AWS_ROLE || `Cognito_${ROLE_NAME}_${PARTNER}_${ENV}_Unauth_Role`;
 
 
+    // config var that sets the time required for a Hover event to be sent
     HOVER_WAIT_TIME = CONFIG.HOVER_WAIT_TIME || 1000;
 
+    // vars that are fixed for all current partners no longer needed to be passed 
     const REC_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "webflow_adjustments";
     const EVENT_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "web_events";
     const CONFIG_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "webflow_config";
     const EXECUTION_LEVEL = CONFIG.EXECUTION_LEVEL || "user_interaction";
 
-    TOP_LOCATION = CONFIG.TOP_LOCATION + ":" + PARTNER_NAME + ":base" //|| "key" + window.location.protocol + "//" + window.location.host;
-    PATH_LOCATION = "/ReactComponent";
-    FULL_LOCATION = TOP_LOCATION + PATH_LOCATION
+    // These are not currently being used.  They were used to grab the replacement configuration
+    // TOP_LOCATION = CONFIG.TOP_LOCATION + ":" + PARTNER_NAME + ":base" //|| "key" + window.location.protocol + "//" + window.location.host;
+    // PATH_LOCATION = "/ReactComponent";
+    // FULL_LOCATION = TOP_LOCATION + PATH_LOCATION
+    // this will be used when executing replacements.  Currently not used.
+    configName = CONFIG.configName || "active_config";
 
+    // Determines how any people we send in the control condition
     MOONLIGHT_PERCENT_CONTROL = CONFIG.PRECENT_CONTROL || 10;
 
+    // required values for the dynamo db calls
     REC_TABLE_NAME = `${REC_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
     EVENT_TABLE_NAME = `${EVENT_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
     CONFIG_TABLE_NAME = `${CONFIG_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
@@ -444,11 +456,13 @@ function MoonlightInit(config) {
    * AWS Retrieval
    */
 
-
+    // Initialize the unauthenticated Cognito Client that has permission to post the the dynamo Db
     const cognitoIdentityClient = new CognitoIdentityClient({
         region: "us-east-1"
     });
 
+
+    // initialize the client allowing post to the dynamo DB
     docClient = new DynamoDB({
         region: REGION,
         credentials: fromCognitoIdentityPool({
@@ -456,314 +470,6 @@ function MoonlightInit(config) {
             identityPoolId: ID_POOL_ID
         })
     });
-    // try {
-    checkVisitor()
-
-    // } catch (error) {
-    //     window.onload = function() {
-    //         checkVisitor()
-    //     };
-
-
-    // }
-
-
-
 }
 
-
 export default MoonlightInit;
-
-// const replaceContentOne = (obj, replacement_info, adjustment_key_name, trigger_element, event_info) => {
-//     var success = true
-//     // console.log("replacement_info", replacement_info);
-//     for (var replace_obj_indx in replacement_info) {
-//         var replace_obj = replacement_info[replace_obj_indx];
-
-//         var replace_value = obj[replace_obj["replacement_name"]];
-
-//         const event = {
-//             event_value: 0,
-//             event_type: "adjustment",
-//             event_info: event_info,
-//             trigger_method: adjustment_key_name,
-//             trigger_element_path: ":" + trigger_element,
-//             element_path: replace_obj.element_xpath
-//         }
-//         sendEvent(event);
-//     }
-//     // console.log("replace", replace_value)
-//     return replace_value
-// };
-
-// const replaceContent = (data, adjustment_object_values, adjustment_key_name, trigger_element, event_info) => {
-//     // console.log("Starting Replacement");
-//     // console.log("Replace data", data);
-//     //switching to non iteration here because will do one version per change.
-//     return replaceContentOne(data, adjustment_object_values, adjustment_key_name, trigger_element, event_info);
-// };
-
-// const render = (data, adjustment_object_values, adjustment_key_name, trigger_element, event_info) => {
-//     // console.log("Starting Rendering");
-//     // console.log("Render Data", data);
-//     // Determine here if injecting entire element or replacing parts
-//     return replaceContent(data, adjustment_object_values, adjustment_key_name, trigger_element, event_info);
-// };
-
-
-// const executeChange = (adjustment, event) => {
-
-//     var adjustment_object = adjustment.adjustment_object;
-//     // this is the object that holds the information around what is actually being modified on the page
-//     const adjustment_object_values = event.adjustment_object_values;
-
-//     const event_info = {
-//         adjustment_name: adjustment.adjustment_name,
-//         adjustment_group: event.adjustment_group,
-//         replacement_id: event.id || event.adjustment_group
-//     }
-//     // console.log("rendering")
-//     // const renderSuccess = render(
-//     //     adjustment_object,
-//     //     adjustment_object_values,
-//     //     event.adjustment_key_name,
-//     //     event.trigger_element_path,
-//     //     event_info
-//     // );
-//     return {
-//         "replaceValue": render(
-//             adjustment_object,
-//             adjustment_object_values,
-//             event.adjustment_key_name,
-//             event.trigger_element_path,
-//             event_info
-//         ), "adjustment": event
-//     };
-//     // if (renderSuccess) {
-//     //     event.adjustment_completed = true;
-//     // }
-//     // console.log("REN",renderSuccess)
-//     // return renderSuccess
-
-// }
-
-
-// const queryData = (event, adjustment_id, default_adjustment_key, execute) => {
-//     // If replacing, hide element
-//     // console.log("Starting Query");
-//     // console.log("adjustment_key", adjustment_id);
-
-//     // if (event.trigger_method === "onload") {
-//     //     var adjustment = JSON.parse(window.localStorage.getItem(adjustment_id))
-//     //     if (adjustment) {
-//     //         console.log("Using cache for adjustment change", adjustment)
-//     //         if (execute) {
-//     //             return executeChange(adjustment, event)
-//     //         }
-//     //         return
-//     //     }
-//     // }
-//     // console.log("Adjustment Key",adjustment_id)
-//     const params = {
-//         TableName: REC_TABLE_NAME,
-//         KeyConditionExpression: "adjustment_key = :c",
-//         ExpressionAttributeValues: marshall({
-//             ":c": String(adjustment_id),
-//         }),
-//     };
-//     const aa = new Promise((resolve, reject) => {
-//         try {
-//             docClient.query(params, (err, data) => {
-//                 if (err) {
-//                     console.warn("Moonlight: querying data error ", err);
-//                     return err;
-//                 }
-//                 const items = data.Items;
-//                 if (items && !items[0]) {
-//                     console.log("no data found")
-//                     resolve(false)
-//                 }
-
-//                 // Required because not all keys will have been seen before
-//                 // if (items && !items[0]) {
-//                 //     console.log("Going Default");
-//                 //     if (retries < 2) {
-//                 //         console.log("querying default")
-//                 //         retries++;
-//                 //         return queryData(event, default_adjustment_key, default_adjustment_key, true);
-//                 //     }
-//                 // }
-//                 var adjustment = unmarshall(items[0]);
-//                 // console.log("Adjustment", adjustment)
-//                 window.localStorage.setItem(adjustment_id, JSON.stringify(adjustment))
-//                 if (execute) {
-//                     // console.log("executing")
-//                     resolve(executeChange(adjustment, event))
-//                 }
-//                 return
-//             });
-//         } catch (err) {
-
-//             reject(err);
-
-//         }
-//     })
-//     return aa
-// };
-
-
-
-// const generate_adjustment_key = (adjustment) => {
-//     // take in adjustmentID
-//     // return the full path
-//     // also need to add in addendum for AB testing
-//     // console.log("A")
-//     if (adjustment.adjustment_key_name == "a_b") {
-//         return adjustment.adjustment_key_name + ":" + adjustment.addendum;
-//     }
-//     else if (adjustment.adjustment_key_name == "state") {
-//         // console.log("location_info",location_info)
-//         const utm_campaign = urlParams.get("utm_content")
-//         if (utm_campaign) {
-//             return utm_campaign;
-//         }
-//         else {
-//             return adjustment.default_adjustment_key
-//         }
-//     }
-//     else {
-//         return adjustment.id
-//     }
-// };
-
-
-
-
-// const gatherAdjustment = (adjustment, updateDict) => {
-//     // console.log("starting adjustment");
-//     // console.log("adjustment event", adjustment.id);
-
-//     // the adjustment key depends on the adjustment (user_id, event_path, etc)
-//     const adjustment_key = generate_adjustment_key(adjustment);
-
-//     // Gather the data from the db
-//     var adjustment_group = adjustment.adjustment_group;
-//     var full_prog_event_path =
-//         FULL_LOCATION + ":" + adjustment_group + ":" + adjustment_key;
-//     var full_prog_default_event_path =
-//         FULL_LOCATION + ":" + adjustment_group + ":" + adjustment.default_adjustment_key;
-//     return queryData(adjustment, full_prog_event_path, full_prog_default_event_path, true, updateDict);
-// };
-
-
-
-// // Setting up configuration
-// const set_ab_path = (action) => {
-//     const key_name = action.adjustment_group + "_addendum"
-//     var addendum = JSON.parse(window.localStorage.getItem(key_name))
-//     // if (addendum) {
-//     //     action["addendum"] = addendum.toString() + ":end";
-//     // }
-//     if (action["trigger_type"] === "even_split") {
-//         // add in line so that user gets same ab
-
-//         const max = action["trigger_element_path"];
-//         addendum = Math.floor(Math.random() * Math.floor(max));
-//         // console.log("setting",addendum)
-//         action["addendum"] = addendum.toString() + ":end";
-//         window.localStorage.setItem(key_name, JSON.stringify(addendum))
-//     }
-
-// };
-
-// // starting function
-
-// export function retireve_configs(componentID, updateDict) {
-
-//     urlParams = new URLSearchParams(window.location.search);
-//     // create a session_id to track events that all happen within one session.  Here session is defined as duration of the page.
-//     session_id_start = generateUUID();
-//     sessionStorage.setItem("session_id", session_id_start);
-
-//     // need to add in section here to identify user and split into control or experiment based on that
-//     const cookie = getUserId();
-//     // console.log("Starting")
-//     USER_ID = getCookie("moonlight.uuid");
-//     const statusCookie = getStatus();
-//     STATUS = getCookie("moonlight.status");
-//     grabSessionSpecificInfo()
-//     if (STATUS === "control") {
-//         // console.log("setting adjustments")
-//         return false
-//     }
-
-//     // console.log("retrieving")
-//     //Initialize
-//     var availableConfigs = JSON.parse(window.localStorage.getItem("availableConfigs"))
-//     // console.log("aa", availableConfigs)
-//     var adjustment = {}
-//     // if (availableConfigs) {
-//     if (false) {
-//         // console.log("grabbed from local storage", availableConfigs)
-//         // console.log("Grabbing configs from local storage")
-//         // console.log("PP",PATH_LOCATION)
-//         // console.log("CON",configName)
-//         if (PATH_LOCATION in availableConfigs[configName]) {
-//             // console.log("running")
-//             adjustment = availableConfigs[configName][PATH_LOCATION]["REPLACEMENT"][componentID]
-//             set_ab_path(adjustment)
-//             adjustment.id = componentID
-//             // console.log("gg", adjustment)
-//             // return { "replaceValue": gatherAdjustment(adjustment), "adjustment": adjustment }
-//             return gatherAdjustment(adjustment, updateDict)
-//         }
-//         return
-//     }
-
-//     let retries = 0;
-//     // console.log("THis is the top", TOP_LOCATION)
-//     // console.log("This is the table", CONFIG_TABLE_NAME)
-//     const params = {
-//         TableName: CONFIG_TABLE_NAME,
-//         KeyConditionExpression: "config_group_id = :c",
-//         ExpressionAttributeValues: marshall({
-//             ":c": String(TOP_LOCATION),
-//         }),
-//     };
-
-//     const tt = new Promise((resolve, reject) => {
-//         try {
-//             docClient.query(params, (err, data) => {
-//                 // console.log("Querying for configs")
-//                 if (err) {
-//                     console.warn("Moonlight: querying data error ", err);
-//                     return err;
-//                 }
-//                 // console.log("Data",data)
-//                 const items = data.Items;
-//                 // console.log("Items", items)
-//                 if (items && !items[0]) {
-//                     // console.log("Moonlight: No Configs");
-//                     return;
-//                 } else {
-//                     availableConfigs = unmarshall(items[0]).available_configs;
-//                     window.localStorage.setItem("availableConfigs", JSON.stringify(availableConfigs))
-//                     // console.log("Using Config: ", configName)
-//                     if (PATH_LOCATION in availableConfigs[configName]) {
-//                         adjustment = availableConfigs[configName][PATH_LOCATION]["REPLACEMENT"][componentID]
-//                         set_ab_path(adjustment)
-//                         adjustment.id = componentID
-//                         // return { "replaceValue": gatherAdjustment(adjustment), "adjustment": adjustment }
-//                         resolve(gatherAdjustment(adjustment, updateDict))
-//                         // resolve("https://frontend-components-develop.s3.us-west-1.amazonaws.com/chapterFacebookDemo.png")
-//                     }
-//                 }
-//             });
-//         } catch (err) {
-
-//             reject(err);
-
-//         }
-//     })
-//     return tt
-// }
