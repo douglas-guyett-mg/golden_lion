@@ -193,40 +193,75 @@ const getCookie = (cname) => {
     }
     return "";
 };
-// check to see if the ID has already been set, if so grab otherwise set a new cookie
-const getUserId = () => {
-    // console.log("checking user id")
-    try {
-        const cookieName = "moonlight.uuid";
-        // Get cookie
-        const uuid = getCookie(cookieName);
-        if (!uuid) {
-            // console.log("user id not found creating new one")
-            const uuidNew = generateUUID();
-            const newCookie = setCookie(cookieName, uuidNew, 1000);
-            USER_ID = uuidNew
-            const event = {
-                event_value: 0,
-                event_type: "action",
-                event_info: {},
-                trigger: "NewUser",
-                location: window.location.href + ":" + "N/A" + ":" + setupId
-            }
-            sendEvent(event)
-            return uuidNew;
+
+
+
+
+
+
+export function checkVisitor() {
+    //check if user id is set
+    // console.log("Start to check visitor")
+    USER_ID = getUserId()
+    SESSION_ID = getSessionId()
+
+}
+
+
+export const sendEvent = (event) => {
+    const event_type = event.event_type;
+
+    // console.log("Starting event send")
+
+    const event_id = generateUUID()
+
+    const eventData = {
+        event_id: event_id,
+        event_info: event.event_info,
+        event_timestamp: Date.now(),
+        event_type: event_type,
+        event_value: event.event_value,
+        location: event.location,
+        trigger: event.trigger,
+        partner: PARTNER_NAME,
+        session_id: SESSION_ID,
+        user_id: USER_ID,
+    };
+
+    // console.log("ee",eventData)
+
+    const params = {
+        TableName: EVENT_TABLE_NAME,
+        Item: marshall(eventData),
+    };
+
+    docClient.putItem(params, (err, data) => {
+        if (err) {
+            console.warn("Moonlight: Sending Event Error", err);
         }
-        user_info["repeat_visitor"] = true;
-        return uuid;
-    } catch (e) {
-
-
-        console.warn(`Moonlight: User Id Retrieval Error ${e}`);
-
-
-    }
+    });
 };
 
-export const getSessionId = () => {
+
+const paramValue = () => {
+
+
+    if (window) {
+
+        let searchParams = new URLSearchParams(window.location.search)
+        // console.log("search",searchParams.get("medit"))
+        if (searchParams.get(moonlightParam)) {
+            return searchParams.get(moonlightParam) == "001" ? "control" : "experiment"
+        } else {
+            return null
+        }
+    } else {
+        return null
+    }
+
+}
+
+const getSessionId = () => {
     // console.log("checking session id")
     try {
         const cookieName = "moonlight.sessionId";
@@ -265,9 +300,8 @@ export const getSessionId = () => {
     }
 };
 
-
 // need to add function here that creates condition TODOO
-export function getStatus() {
+function getStatus() {
     try {
         const cookieName = "moonlight.status";
         // Get cookie
@@ -295,65 +329,37 @@ export function getStatus() {
     }
 };
 
-export function checkVisitor() {
-    //check if user id is set
-    // console.log("Start to check visitor")
-    USER_ID = getUserId()
-    SESSION_ID = getSessionId()
-
-}
-
-
-export const sendEvent = (event) => {
-    const event_type = event.event_type;
-
-    // console.log("Starting event send")
-
-    const event_id = generateUUID()
-    // if (session_id_start === ""){
-    //     session_id_start = generateUUID();
-    //     sessionStorage.setItem("session_id", session_id_start);
-
-    // }
-    // if (USER_ID === "") {
-    //      // need to add in section here to identify user and split into control or experiment based on that
-    //     const cookie = getUserId();
-    //     // console.log("Starting")
-    //     USER_ID = getCookie("moonlight.uuid");
-    // }
-
-    // console.log("event_id",event_id)
-
-    const eventData = {
-        event_id: event_id,
-        event_info: event.event_info,
-        event_timestamp: Date.now(),
-        event_type: event_type,
-        event_value: event.event_value,
-        location: event.location,
-        trigger: event.trigger,
-        partner: PARTNER_NAME,
-        session_id: SESSION_ID,
-        user_id: USER_ID,
-    };
-
-    // console.log("ee",eventData)
-
-    const params = {
-        TableName: EVENT_TABLE_NAME,
-        Item: marshall(eventData),
-    };
-
-
-
-    // console.log("About to send event");
-    // console.log("params", params);
-    // console.log("event_id", event_id)
-    docClient.putItem(params, (err, data) => {
-        if (err) {
-            console.warn("Moonlight: Sending Event Error", err);
+// gets the current moonlight Id.  If it is not set than creates a new one and send a NewUser Event
+const getUserId = () => {
+    // console.log("checking user id")
+    try {
+        const cookieName = "moonlight.uuid";
+        // Get cookie
+        const uuid = getCookie(cookieName);
+        if (!uuid) {
+            // console.log("user id not found creating new one")
+            const uuidNew = generateUUID();
+            const newCookie = setCookie(cookieName, uuidNew, 1000);
+            USER_ID = uuidNew
+            const event = {
+                event_value: 0,
+                event_type: "action",
+                event_info: {},
+                trigger: "NewUser",
+                location: window.location.href + ":" + "N/A" + ":" + setupId
+            }
+            sendEvent(event)
+            return uuidNew;
         }
-    });
+        user_info["repeat_visitor"] = true;
+        return uuid;
+    } catch (e) {
+
+
+        console.warn(`Moonlight: User Id Retrieval Error ${e}`);
+
+
+    }
 };
 
 
@@ -361,39 +367,86 @@ export const sendEvent = (event) => {
 
 
 // Function to Gather State
-function GatherCurrentState(){
+export function GatherCurrentState(req) {
 
+    const cookies = cookie.parse(req ? req.headers.cookie || "" : document.cookie)
+
+    let status = null
     // Check for Id cookie <- we don't use this but it is good to know because 
     //will help with defining when behavior is abnormal
-
+    const uuid = cookies["moonlight.uuid"] ? cookies["moonlight.uuid"] : null;
     // Check for Status Cookie
-
+    const statusCookieValue = cookies["moonlight.status"] ? cookies["moonlight.status"] : null;
     // Check for Param
-
+    const paramStatus = paramValue()
     // set status var
-
-    // return status var
+    if (statusCookieValue) {
+        if (!paramStatus) {
+            status = statusCookieValue
+        } else if (paramStatus == statusCookieValue) {
+            status = paramStatus
+        } else {
+            // TODO send error
+            console.error(`param status: ${paramStatus} does not equal status cookie: ${statusCookieValue}`)
+            status = paramStatus
+        }
+    } else {
+        if (!paramStatus) {
+            status = paramStatus
+        } else {
+            // TODO send error
+            status = "TBD"
+        }
+    }
+    return status
 
 
 }
 
 // Execute Server flow
-function RunServerSideSetUp(status){
-    
+export function RunServerSideSetUp(status) {
+    let outStatus = status
     // note this must happen before redirect happens
     // if TBD randomly choose status based on percentage passed in
+    if (outStatus === "TBD"){
+        outStatus = generateStatus()
+    }
     // if status is experiment set mi query param to 002
+    // do we want to send event here <- I don't think so because won't be filled with any useful information
+    if (outStatus == "experiment"){
+        return "002"
+    } else if (outStatus == "control") {
+        return "001"
+    } else {
+        console.error(`Error Moonlight Status: ${outStatus} not recognized.`)
+        return null
+    }
     // if status is control set mi query param to 001
 
 }
 
 // Execute Client Side Flow
-function RunClientSideSetUp(status){
-
+export function RunClientSideSetUp(status) {
+    let outStatus = status
     // if status is TBD, set to N/A and stop
+    if (outStatus === "TBD"){
+        outStatus == "N/A"
+        return
+    }
     // get moonlight id
+    const uuid = getUserId()
+    USER_ID = uuid
     // get status && confirm that it equals input status
+    const cookieStatus = getStatus()
+    if (cookieStatus != outStatus){
+        console.error(`Cookie Status: ${cookieStatus} and input status:${outStatus} do not equal`)
+        const newCookie = setCookie("moonlight.status", outStatus, 1000);
+    }
     // If status is experiment get session id
+    if (outStatus == "experiment"){
+        const sessionId = getSessionId()
+        SESSION_ID = sessionId
+    }
 
 }
 
