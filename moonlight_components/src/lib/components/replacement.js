@@ -7,6 +7,7 @@ import { CognitoIdentityClient } from "@aws-sdk/client-cognito-identity"
 import { fromCognitoIdentityPool } from "@aws-sdk/credential-provider-cognito-identity"
 
 import { marshall } from "@aws-sdk/util-dynamodb"
+import cookie from "cookie"
 
 
 // Global Vars 
@@ -53,6 +54,7 @@ let setupId = "";
 var user_info = {
     repeat_visitor: false,
 };
+const moonlightParam = "mid"
 
 const generateUUID = () => {
     // Public Domain/MIT
@@ -84,23 +86,7 @@ const generateStatus = () => {
     } else {
         status = "experiment"
     }
-    // const newUserInfo = {"status":status}
-    // const location_info = gather_ip_attributes()
-    // newUserInfo["city"] = location_info["city"]
-    // newUserInfo["country"] = location_info["country"]
 
-
-
-
-    // const event = {
-    //     event_value: 0,
-    //     event_type: "newUser",
-    //     event_info: status,
-    //     trigger_method: "newUser",
-    //     trigger_element_path: "onload",
-    //     element_path: " "
-    // }
-    // sendEvent(event)
     return status
 };
 
@@ -175,6 +161,7 @@ const setCookie = (cname, cvalue, exdays) => {
     d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
     var expires = "expires=" + d.toUTCString() + ";";
     var domain = BaseDomain ? "domain=" + BaseDomain + ";" : "";
+    console.log("cookie value",cname + "=" + cvalue + ";" + expires + domain + "path=/")
     document.cookie = cname + "=" + cvalue + ";" + expires + domain + "path=/";
 };
 // constant/function to get any exsiting cookies on page
@@ -199,13 +186,13 @@ const getCookie = (cname) => {
 
 
 
-export function checkVisitor() {
-    //check if user id is set
-    // console.log("Start to check visitor")
-    USER_ID = getUserId()
-    SESSION_ID = getSessionId()
+// export function checkVisitor() {
+//     //check if user id is set
+//     // console.log("Start to check visitor")
+//     USER_ID = getUserId()
+//     SESSION_ID = getSessionId()
 
-}
+// }
 
 
 export const sendEvent = (event) => {
@@ -246,7 +233,7 @@ export const sendEvent = (event) => {
 const paramValue = () => {
 
 
-    if (window) {
+    if (typeof window !== 'undefined') {
 
         let searchParams = new URLSearchParams(window.location.search)
         // console.log("search",searchParams.get("medit"))
@@ -301,28 +288,31 @@ const getSessionId = () => {
 };
 
 // need to add function here that creates condition TODOO
-function getStatus() {
+function getStatus(status) {
+    let outStatus = status
     try {
         const cookieName = "moonlight.status";
         // Get cookie
-        const cookie = getCookie(cookieName);
-        if (!cookie) {
-            const status = generateStatus()
-            const newCookie = setCookie(cookieName, status, 1000);
+        const statusCookieValue = getCookie(cookieName);
+        if (!statusCookieValue) {
+            if (!outStatus) {
+                outStatus = generateStatus()
+            }
+            const newCookie = setCookie(cookieName, outStatus, 1000);
             // location_info = gather_ip_attributes()
             const event = {
                 event_value: 0,
                 event_type: "action",
-                event_info: { "status": status },
+                event_info: { "status": outStatus },
                 trigger: "NewStatus",
                 location: window.location.href + ":" + "N/A" + ":" + setupId
             }
             sendEvent(event)
 
-            return status;
+            return outStatus;
 
         }
-        return cookie;
+        return statusCookieValue;
     } catch (e) {
         console.log("Status retrieval error");
         console.warn(`Moonlight: Status Retrieval Error ${e}`);
@@ -336,8 +326,9 @@ const getUserId = () => {
         const cookieName = "moonlight.uuid";
         // Get cookie
         const uuid = getCookie(cookieName);
+        console.log("Set Uuid", uuid)
         if (!uuid) {
-            // console.log("user id not found creating new one")
+            console.log("user id not found creating new one")
             const uuidNew = generateUUID();
             const newCookie = setCookie(cookieName, uuidNew, 1000);
             USER_ID = uuidNew
@@ -375,10 +366,13 @@ export function GatherCurrentState(req) {
     // Check for Id cookie <- we don't use this but it is good to know because 
     //will help with defining when behavior is abnormal
     const uuid = cookies["moonlight.uuid"] ? cookies["moonlight.uuid"] : null;
+    console.log("uuid", uuid)
     // Check for Status Cookie
     const statusCookieValue = cookies["moonlight.status"] ? cookies["moonlight.status"] : null;
+    console.log("status Cookie", statusCookieValue)
     // Check for Param
     const paramStatus = paramValue()
+    console.log("param Value", paramStatus)
     // set status var
     if (statusCookieValue) {
         if (!paramStatus) {
@@ -391,13 +385,14 @@ export function GatherCurrentState(req) {
             status = paramStatus
         }
     } else {
-        if (!paramStatus) {
+        if (paramStatus) {
             status = paramStatus
         } else {
             // TODO send error
             status = "TBD"
         }
     }
+    console.log("Status", status)
     return status
 
 
@@ -406,14 +401,16 @@ export function GatherCurrentState(req) {
 // Execute Server flow
 export function RunServerSideSetUp(status) {
     let outStatus = status
+    console.log("outStatus", status)
     // note this must happen before redirect happens
     // if TBD randomly choose status based on percentage passed in
-    if (outStatus === "TBD"){
+    if (outStatus === "TBD") {
         outStatus = generateStatus()
+        console.log("generated outStatus", outStatus)
     }
     // if status is experiment set mi query param to 002
     // do we want to send event here <- I don't think so because won't be filled with any useful information
-    if (outStatus == "experiment"){
+    if (outStatus == "experiment") {
         return "002"
     } else if (outStatus == "control") {
         return "001"
@@ -428,8 +425,9 @@ export function RunServerSideSetUp(status) {
 // Execute Client Side Flow
 export function RunClientSideSetUp(status) {
     let outStatus = status
+    console.log("outStatus", outStatus)
     // if status is TBD, set to N/A and stop
-    if (outStatus === "TBD"){
+    if (outStatus === "TBD") {
         outStatus == "N/A"
         return
     }
@@ -437,13 +435,13 @@ export function RunClientSideSetUp(status) {
     const uuid = getUserId()
     USER_ID = uuid
     // get status && confirm that it equals input status
-    const cookieStatus = getStatus()
-    if (cookieStatus != outStatus){
+    const cookieStatus = getStatus(outStatus)
+    if (cookieStatus != outStatus) {
         console.error(`Cookie Status: ${cookieStatus} and input status:${outStatus} do not equal`)
         const newCookie = setCookie("moonlight.status", outStatus, 1000);
     }
     // If status is experiment get session id
-    if (outStatus == "experiment"){
+    if (outStatus == "experiment") {
         const sessionId = getSessionId()
         SESSION_ID = sessionId
     }

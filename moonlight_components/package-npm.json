@@ -3,7 +3,7 @@
 "description": "Moonlight components to optimize your webpage.",
 "author": "Moonlight",
 "keywords": ["react", "components", "ui", "personalization","ab test"],
-"version": "0.1.26",
+"version": "0.2.08",
 "dependencies": {
   "@babel/polyfill": "^7.12.1",
   "@testing-library/jest-dom": "^5.11.4",
@@ -13,6 +13,7 @@
   "@aws-sdk/client-dynamodb": "^3.36.0",
   "@aws-sdk/credential-provider-cognito-identity": "^3.36.0",
   "@aws-sdk/util-dynamodb": "^3.37.0",
+  "cookie": "^0.4.2",
   "react": "^17.0.2",
   "react-dom": "^17.0.2",
   "react-scripts": "4.0.3",
