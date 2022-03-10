@@ -5,7 +5,6 @@
 import { DynamoDB } from "@aws-sdk/client-dynamodb";
 import { CognitoIdentityClient } from "@aws-sdk/client-cognito-identity"
 import { fromCognitoIdentityPool } from "@aws-sdk/credential-provider-cognito-identity"
-
 import { marshall } from "@aws-sdk/util-dynamodb"
 import cookie from "cookie"
 
@@ -15,16 +14,13 @@ var CONFIG = {}
 var ENV = ""
 var PARTNER = ""
 var PARTNER_NAME = ""
-var configName = ""
+// var configName = ""
 
 
 var REGION = ""
 var ROLE_NAME = ""
 var ID_POOL_ID = ""
-var AWS_ROLE = ""
-
-
-var HOVER_WAIT_TIME = null
+// var AWS_ROLE = ""
 
 // var TOP_LOCATION = ""
 // var PATH_LOCATION = ""
@@ -32,9 +28,9 @@ var HOVER_WAIT_TIME = null
 
 var MOONLIGHT_PERCENT_CONTROL = 0
 
-var REC_TABLE_NAME = ""
+// var REC_TABLE_NAME = ""
 var EVENT_TABLE_NAME = ""
-var CONFIG_TABLE_NAME = ""
+// var CONFIG_TABLE_NAME = ""
 
 var docClient = null
 
@@ -44,7 +40,7 @@ var BaseDomain = ""
 
 
 //Initialize
-let retries = 0;
+// let retries = 0;
 
 let USER_ID = "";
 let SESSION_ID = "";
@@ -54,7 +50,7 @@ let setupId = "";
 var user_info = {
     repeat_visitor: false,
 };
-const moonlightParam = "mid"
+export const moonlightParam = "mid"
 
 const generateUUID = () => {
     // Public Domain/MIT
@@ -78,6 +74,7 @@ const generateUUID = () => {
 
 const generateStatus = () => {
     console.log("Generating status")
+    console.log("Percent Control", MOONLIGHT_PERCENT_CONTROL)
     const randNumber = Math.floor(Math.random() * 100) + 1
     // console.log("number",randNumber)
     let status = "";
@@ -123,7 +120,7 @@ const gather_ip_attributes = () => {
         });
 };
 
-export const grabSessionSpecificInfo = () => {
+export function grabSessionSpecificInfo(){
 
     gather_ip_attributes()
     // need line to grab utm variables
@@ -195,7 +192,7 @@ const getCookie = (cname) => {
 // }
 
 
-export const sendEvent = (event) => {
+export function sendEvent(event){
     const event_type = event.event_type;
 
     // console.log("Starting event send")
@@ -229,6 +226,43 @@ export const sendEvent = (event) => {
     });
 };
 
+export function setCustomDimension(){
+
+    let mid = null
+    // let uuid = null
+
+    if (typeof window !== 'undefined') {
+
+        // const presetValue = window.localStorage.getItem("mcd")
+        // if (presetValue){
+        //     console.log("Using preset value",presetValue)
+        //     return presetValue
+        // }
+
+        let searchParams = new URLSearchParams(window.location.search)
+        // console.log("search",searchParams.get("medit"))
+        if (searchParams.get(moonlightParam)) {
+            mid = searchParams.get(moonlightParam) == "001" ? "control" : "experiment"
+        } else {
+            mid = null
+        }
+        const uuid = getCookie("moonlight.uuid");
+        if (!uuid){
+            console.error("Error: Moonlight uuid not set.")
+            return "NA:" + mid
+        }
+        const dimensionValue = uuid + ":" + mid
+        // window.localStorage.setItem("mcd",dimensionValue)
+        return dimensionValue
+
+    } else {
+        return "window_not_set"
+    }
+
+    
+
+
+}
 
 const paramValue = () => {
 
@@ -249,7 +283,8 @@ const paramValue = () => {
 }
 
 const getSessionId = () => {
-    // console.log("checking session id")
+    console.log("checking session id")
+    let newCookie = null
     try {
         const cookieName = "moonlight.sessionId";
         // Get cookie
@@ -258,12 +293,14 @@ const getSessionId = () => {
             let sessionId = window.localStorage.getItem("SESSION_ID")
             //TODO: NEED TO ADD IN ANOTHER BREAK FOR QUERY PARAM
             if (!sessionId) {
-                // console.log("session id not found creating new one")
+                console.log("session id not found creating new one")
                 sessionId = generateUUID();
                 SESSION_ID = sessionId
-                const newCookie = setCookie(cookieName, sessionId, 1000)
+                newCookie = setCookie(cookieName, sessionId, 1000)
                 window.localStorage.setItem("SESSION_ID", sessionId)
                 grabSessionSpecificInfo()
+            } else{
+                newCookie = setCookie(cookieName, sessionId, 1000)
             }
             return sessionId;
         }
@@ -434,6 +471,7 @@ export function RunClientSideSetUp(status) {
     // get moonlight id
     const uuid = getUserId()
     USER_ID = uuid
+    console.log("USER_ID",USER_ID)
     // get status && confirm that it equals input status
     const cookieStatus = getStatus(outStatus)
     if (cookieStatus != outStatus) {
@@ -441,16 +479,20 @@ export function RunClientSideSetUp(status) {
         const newCookie = setCookie("moonlight.status", outStatus, 1000);
     }
     // If status is experiment get session id
+    console.log("outStatusS",outStatus)
     if (outStatus == "experiment") {
+        console.log("Setting Session Id")
         const sessionId = getSessionId()
         SESSION_ID = sessionId
     }
+    const customDimension = setCustomDimension()
+    return customDimension
 
 }
 
 // Function to initialize the required variables 
-function MoonlightInit(config) {
-
+export function MoonlightInit(config) {
+    console.log("initializing")
     // Make sure that it is only initialized once <- this should be just a check
     if (!CONFIG === {}) {
         console.error("Trying to initialize Moonlight More than once")
@@ -476,16 +518,16 @@ function MoonlightInit(config) {
     REGION = CONFIG.REGION || "us-east-1";
     ROLE_NAME = CONFIG.ROLE_NAME || "webflow_adjustment";
     ID_POOL_ID = CONFIG.ID_POOL_ID
-    AWS_ROLE = CONFIG.AWS_ROLE || `Cognito_${ROLE_NAME}_${PARTNER}_${ENV}_Unauth_Role`;
+    // AWS_ROLE = CONFIG.AWS_ROLE || `Cognito_${ROLE_NAME}_${PARTNER}_${ENV}_Unauth_Role`;
 
 
     // config var that sets the time required for a Hover event to be sent
-    HOVER_WAIT_TIME = CONFIG.HOVER_WAIT_TIME || 1000;
+    // HOVER_WAIT_TIME = CONFIG.HOVER_WAIT_TIME || 1000;
 
     // vars that are fixed for all current partners no longer needed to be passed 
-    const REC_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "webflow_adjustments";
+    // const REC_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "webflow_adjustments";
     const EVENT_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "web_events";
-    const CONFIG_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "webflow_config";
+    // const CONFIG_TABLE_PREFIX = CONFIG.REC_TABLE_PREFIX || "webflow_config";
     const EXECUTION_LEVEL = CONFIG.EXECUTION_LEVEL || "user_interaction";
 
     // These are not currently being used.  They were used to grab the replacement configuration
@@ -493,15 +535,15 @@ function MoonlightInit(config) {
     // PATH_LOCATION = "/ReactComponent";
     // FULL_LOCATION = TOP_LOCATION + PATH_LOCATION
     // this will be used when executing replacements.  Currently not used.
-    configName = CONFIG.configName || "active_config";
+    // configName = CONFIG.configName || "active_config";
 
     // Determines how any people we send in the control condition
-    MOONLIGHT_PERCENT_CONTROL = CONFIG.PRECENT_CONTROL || 10;
-
+    MOONLIGHT_PERCENT_CONTROL = CONFIG.PERCENT_CONTROL || 10;
+    console.log("Moonlight control",MOONLIGHT_PERCENT_CONTROL)
     // required values for the dynamo db calls
-    REC_TABLE_NAME = `${REC_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
+    // REC_TABLE_NAME = `${REC_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
     EVENT_TABLE_NAME = `${EVENT_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
-    CONFIG_TABLE_NAME = `${CONFIG_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
+    // CONFIG_TABLE_NAME = `${CONFIG_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
 
     /**
    * AWS Retrieval
@@ -522,5 +564,3 @@ function MoonlightInit(config) {
         })
     });
 }
-
-export default MoonlightInit;

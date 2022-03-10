@@ -23,12 +23,18 @@ const PageView = ({ componentId, setupId }) => {
         // pageLocation = window.location.pathname
 
         action["location"] = window.location.href + ":" + componentId + ":" + sendSetUpId
-        sendEvent(action)
+
+        const timer = setTimeout(() => {
+            sendEvent(action)
+          }, 1000);
+          return () => clearTimeout(timer);
         // getSessionId()
         
 
         // return () => clearTimeout(timer)
     },[]);
+
+
 
 
 
