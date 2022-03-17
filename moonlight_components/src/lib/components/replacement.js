@@ -87,21 +87,78 @@ const generateStatus = () => {
     return status
 };
 
+function hash(string) {
+    const utf8 = new TextEncoder().encode(string);
+    return crypto.subtle.digest('SHA-256', utf8).then((hashBuffer) => {
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray
+        .map((bytes) => bytes.toString(16).padStart(2, '0'))
+        .join('');
+      return hashHex;
+    });
+  }
+
+
+  function json(url) {
+    return fetch(url).then(res => res.json());
+  }
+  
+
+
 
 const gather_ip_attributes = () => {
     // user_info = {}
-    fetch("https://extreme-ip-lookup.com/json/")
-        .then((res) => res.json())
-        .then((response) => {
-            // user_info["location"] = response["city"];
-            // console.log(
-            //   "A"
-            // )
-            const location_info = { "city": response["city"], "country": response["countryCode"], "region": response["region"], "platform": navigator.platform, "vendor": navigator.vendor, "appVersion": navigator.appVersion, "userAgent": navigator.userAgent, "language": navigator.language }
-            // return location_info
-            // console.log("b")
-            // console.log("user location", user_info["location"]);
-            // checkLocal();
+    // fetch("http://api.ipstack.com/134.201.250.155?access_key=f60858c238f99c88a23f0b6ee1156d2e")
+    //     .then((res) => res.json())
+    //     .then((response) => {
+    //         // user_info["location"] = response["city"];
+    //         // console.log(
+    //         //   "A"
+    //         // )
+    //         const location_info = { 
+    //             "hasip":hash(response["ip"]),
+    //             "city": response["city"], 
+    //         "country": response["country_code"], 
+    //         "region": response["region_code"], 
+    //         "platform": navigator.platform, 
+    //         "vendor": navigator.vendor, 
+    //         "appVersion": navigator.appVersion, 
+    //         "userAgent": navigator.userAgent, 
+    //         "language": navigator.language }
+    //         // return location_info
+    //         // console.log("b")
+    //         // console.log("user location", user_info["location"]);
+    //         // checkLocal();
+    //         const event = {
+    //             event_value: "0.0",
+    //             event_type: "locationInfo",
+    //             event_info: location_info,
+    //             trigger: "locationInfo",
+    //             trigger_element_path: "onload",
+    //             element_path: " ",
+    //             location: window.location.href + ":" + "n/a" + ":" + setupId
+    //         }
+    //         // console.log("sending location info",event.event_type)
+    //         sendEvent(event)
+    //     })
+    //     .catch((data, status) => {
+    //         console.log("Request failed", data);
+    //         // console.log("status",status);
+    //     });
+
+    let apiKey = '4212e4c16856ac6b61eaa6e6dc7f0eab75b3a3a27a158fc90819a208';
+    json(`https://api.ipdata.co?api-key=${apiKey}`).then(data => {
+      console.log(data.ip);
+      console.log(data.city);
+      console.log(data.country_code);
+      // so many more properties
+      hash(data.ip).then((haship)=> {
+        
+        const location_info = { 
+            "haship":haship,
+            "city": data.city, 
+            "country": data.country_code, 
+            "region": data.region_code}
             const event = {
                 event_value: "0.0",
                 event_type: "locationInfo",
@@ -113,11 +170,9 @@ const gather_ip_attributes = () => {
             }
             // console.log("sending location info",event.event_type)
             sendEvent(event)
-        })
-        .catch((data, status) => {
-            console.log("Request failed", data);
-            // console.log("status",status);
-        });
+      })
+    });
+
 };
 
 export function grabSessionSpecificInfo(){
