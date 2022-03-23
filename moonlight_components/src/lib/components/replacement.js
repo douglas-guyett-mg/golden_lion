@@ -27,6 +27,7 @@ var ID_POOL_ID = ""
 // var FULL_LOCATION = ""
 
 var MOONLIGHT_PERCENT_CONTROL = 0
+var IP_APIKEY = ""
 
 // var REC_TABLE_NAME = ""
 var EVENT_TABLE_NAME = ""
@@ -36,6 +37,10 @@ var docClient = null
 
 // var urlParams = ""
 var BaseDomain = ""
+
+const uuidCookieName = "m.uuid"
+const sessionCookieName = "m.sessionId"
+const statusCookieName = "m.status"
 
 
 
@@ -90,19 +95,19 @@ const generateStatus = () => {
 function hash(string) {
     const utf8 = new TextEncoder().encode(string);
     return crypto.subtle.digest('SHA-256', utf8).then((hashBuffer) => {
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray
-        .map((bytes) => bytes.toString(16).padStart(2, '0'))
-        .join('');
-      return hashHex;
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray
+            .map((bytes) => bytes.toString(16).padStart(2, '0'))
+            .join('');
+        return hashHex;
     });
-  }
+}
 
 
-  function json(url) {
+function json(url) {
     return fetch(url).then(res => res.json());
-  }
-  
+}
+
 
 
 
@@ -146,36 +151,41 @@ const gather_ip_attributes = () => {
     //         // console.log("status",status);
     //     });
 
-    let apiKey = '4212e4c16856ac6b61eaa6e6dc7f0eab75b3a3a27a158fc90819a208';
-    json(`https://api.ipdata.co?api-key=${apiKey}`).then(data => {
-      console.log(data.ip);
-      console.log(data.city);
-      console.log(data.country_code);
-      // so many more properties
-      hash(data.ip).then((haship)=> {
-        
-        const location_info = { 
-            "haship":haship,
-            "city": data.city, 
-            "country": data.country_code, 
-            "region": data.region_code}
-            const event = {
-                event_value: "0.0",
-                event_type: "locationInfo",
-                event_info: location_info,
-                trigger: "locationInfo",
-                trigger_element_path: "onload",
-                element_path: " ",
-                location: window.location.href + ":" + "n/a" + ":" + setupId
-            }
-            // console.log("sending location info",event.event_type)
-            sendEvent(event)
-      })
-    });
+    if (IP_APIKEY) {
+        let apiKey = IP_APIKEY;
+        json(`https://api.ipdata.co?api-key=${apiKey}`).then(data => {
+            console.log(data.ip);
+            console.log(data.city);
+            console.log(data.country_code);
+            // so many more properties
+            hash(data.ip).then((haship) => {
+
+                const location_info = {
+                    "haship": haship,
+                    "city": data.city,
+                    "country": data.country_code,
+                    "region": data.region_code
+                }
+                const event = {
+                    event_value: "0.0",
+                    event_type: "locationInfo",
+                    event_info: location_info,
+                    trigger: "locationInfo",
+                    trigger_element_path: "onload",
+                    element_path: " ",
+                    location: window.location.href + ":" + "n/a" + ":" + setupId
+                }
+                // console.log("sending location info",event.event_type)
+                sendEvent(event)
+            })
+        });
+    } else {
+        console.log("Missing IP_APIKEY, not sending")
+    }
 
 };
 
-export function grabSessionSpecificInfo(){
+export function grabSessionSpecificInfo() {
 
     gather_ip_attributes()
     // need line to grab utm variables
@@ -213,7 +223,7 @@ const setCookie = (cname, cvalue, exdays) => {
     d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
     var expires = "expires=" + d.toUTCString() + ";";
     var domain = BaseDomain ? "domain=" + BaseDomain + ";" : "";
-    console.log("cookie value",cname + "=" + cvalue + ";" + expires + domain + "path=/")
+    console.log("cookie value", cname + "=" + cvalue + ";" + expires + domain + "path=/")
     document.cookie = cname + "=" + cvalue + ";" + expires + domain + "path=/";
 };
 // constant/function to get any exsiting cookies on page
@@ -247,7 +257,7 @@ const getCookie = (cname) => {
 // }
 
 
-export function sendEvent(event){
+export function sendEvent(event) {
     const event_type = event.event_type;
 
     // console.log("Starting event send")
@@ -281,7 +291,7 @@ export function sendEvent(event){
     });
 };
 
-export function setCustomDimension(){
+export function setCustomDimension() {
 
     let mid = null
     // let uuid = null
@@ -301,8 +311,8 @@ export function setCustomDimension(){
         } else {
             mid = null
         }
-        const uuid = getCookie("moonlight.uuid");
-        if (!uuid){
+        const uuid = getCookie(uuidCookieName);
+        if (!uuid) {
             console.error("Error: Moonlight uuid not set.")
             return "NA:" + mid
         }
@@ -314,7 +324,7 @@ export function setCustomDimension(){
         return "window_not_set"
     }
 
-    
+
 
 
 }
@@ -341,7 +351,7 @@ const getSessionId = () => {
     console.log("checking session id")
     let newCookie = null
     try {
-        const cookieName = "moonlight.sessionId";
+        const cookieName = sessionCookieName;
         // Get cookie
         const uuid = getCookie(cookieName);
         if (!uuid) {
@@ -354,7 +364,7 @@ const getSessionId = () => {
                 newCookie = setCookie(cookieName, sessionId, 1000)
                 window.localStorage.setItem("SESSION_ID", sessionId)
                 grabSessionSpecificInfo()
-            } else{
+            } else {
                 newCookie = setCookie(cookieName, sessionId, 1000)
             }
             return sessionId;
@@ -383,7 +393,7 @@ const getSessionId = () => {
 function getStatus(status) {
     let outStatus = status
     try {
-        const cookieName = "moonlight.status";
+        const cookieName = statusCookieName;
         // Get cookie
         const statusCookieValue = getCookie(cookieName);
         if (!statusCookieValue) {
@@ -415,7 +425,7 @@ function getStatus(status) {
 const getUserId = () => {
     // console.log("checking user id")
     try {
-        const cookieName = "moonlight.uuid";
+        const cookieName = uuidCookieName;
         // Get cookie
         const uuid = getCookie(cookieName);
         console.log("Set Uuid", uuid)
@@ -457,10 +467,10 @@ export function GatherCurrentState(req) {
     let status = null
     // Check for Id cookie <- we don't use this but it is good to know because 
     //will help with defining when behavior is abnormal
-    const uuid = cookies["moonlight.uuid"] ? cookies["moonlight.uuid"] : null;
+    const uuid = cookies[uuidCookieName] ? cookies[uuidCookieName] : null;
     console.log("uuid", uuid)
     // Check for Status Cookie
-    const statusCookieValue = cookies["moonlight.status"] ? cookies["moonlight.status"] : null;
+    const statusCookieValue = cookies[statusCookieName] ? cookies[statusCookieName] : null;
     console.log("status Cookie", statusCookieValue)
     // Check for Param
     const paramStatus = paramValue()
@@ -526,15 +536,15 @@ export function RunClientSideSetUp(status) {
     // get moonlight id
     const uuid = getUserId()
     USER_ID = uuid
-    console.log("USER_ID",USER_ID)
+    console.log("USER_ID", USER_ID)
     // get status && confirm that it equals input status
     const cookieStatus = getStatus(outStatus)
     if (cookieStatus != outStatus) {
         console.error(`Cookie Status: ${cookieStatus} and input status:${outStatus} do not equal`)
-        const newCookie = setCookie("moonlight.status", outStatus, 1000);
+        const newCookie = setCookie(statusCookieName, outStatus, 1000);
     }
     // If status is experiment get session id
-    console.log("outStatusS",outStatus)
+    console.log("outStatusS", outStatus)
     if (outStatus == "experiment") {
         console.log("Setting Session Id")
         const sessionId = getSessionId()
@@ -563,6 +573,8 @@ export function MoonlightInit(config) {
     PARTNER_NAME = CONFIG.PARTNER_NAME
     // Allows us to set cookies that are accessible by all sub & main domains
     BaseDomain = CONFIG.BaseDomain || null
+
+    IP_APIKEY = config.IP_APIKEY || null
 
 
     // Everything below is currently using the default values
@@ -594,7 +606,7 @@ export function MoonlightInit(config) {
 
     // Determines how any people we send in the control condition
     MOONLIGHT_PERCENT_CONTROL = CONFIG.PERCENT_CONTROL || 10;
-    console.log("Moonlight control",MOONLIGHT_PERCENT_CONTROL)
+    console.log("Moonlight control", MOONLIGHT_PERCENT_CONTROL)
     // required values for the dynamo db calls
     // REC_TABLE_NAME = `${REC_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
     EVENT_TABLE_NAME = `${EVENT_TABLE_PREFIX}_${PARTNER}_${EXECUTION_LEVEL}_${ENV}`;
