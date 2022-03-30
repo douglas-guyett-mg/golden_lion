@@ -61,7 +61,7 @@ const generateUUID = () => {
     // Public Domain/MIT
     var d = new Date().getTime(); //Timestamp
     var d2 = 0//(performance && performance.now && performance.now() * 1000) || 0; //Time in microseconds since page-load or 0 if unsupported
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    return "m3xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
         var r = Math.random() * 16; //random number between 0 and 16
         if (d > 0) {
             //Use timestamp until depleted
@@ -470,7 +470,8 @@ export function GatherCurrentState(req) {
     const uuid = cookies[uuidCookieName] ? cookies[uuidCookieName] : null;
     console.log("uuid", uuid)
     // Check for Status Cookie
-    const statusCookieValue = cookies[statusCookieName] ? cookies[statusCookieName] : null;
+    let statusCookieValue = cookies[statusCookieName] ? cookies[statusCookieName] : null;
+    statusCookieValue = statusCookieValue != "agnostic" ? statusCookieValue : null
     console.log("status Cookie", statusCookieValue)
     // Check for Param
     const paramStatus = paramValue()
@@ -529,9 +530,11 @@ export function RunClientSideSetUp(status) {
     let outStatus = status
     console.log("outStatus", outStatus)
     // if status is TBD, set to N/A and stop
+    console.log("Check", outStatus === "TBD")
     if (outStatus === "TBD") {
-        outStatus == "N/A"
-        return
+        outStatus = "agnostic"
+        console.log("changing to agnostic")
+        // return
     }
     // get moonlight id
     const uuid = getUserId()
@@ -540,16 +543,18 @@ export function RunClientSideSetUp(status) {
     // get status && confirm that it equals input status
     const cookieStatus = getStatus(outStatus)
     if (cookieStatus != outStatus) {
-        console.error(`Cookie Status: ${cookieStatus} and input status:${outStatus} do not equal`)
-        const newCookie = setCookie(statusCookieName, outStatus, 1000);
+        if (cookieStatus != "agnostic") {
+            console.error(`Cookie Status: ${cookieStatus} and input status:${outStatus} do not equal`)
+        }
+        const newCookie = setCookie(statusCookieName, outStatus + ":" + "reset", 1000);
     }
     // If status is experiment get session id
     console.log("outStatusS", outStatus)
-    if (outStatus == "experiment") {
-        console.log("Setting Session Id")
-        const sessionId = getSessionId()
-        SESSION_ID = sessionId
-    }
+    // if (outStatus == "experiment") {
+    console.log("Setting Session Id")
+    const sessionId = getSessionId()
+    SESSION_ID = sessionId
+    // }
     const customDimension = setCustomDimension()
     return customDimension
 
@@ -631,3 +636,5 @@ export function MoonlightInit(config) {
         })
     });
 }
+
+console.log("Script Loaded Moonlight")
